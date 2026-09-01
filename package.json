@@ -1,0 +1,48 @@
+{
+  "name": "sifal-stock",
+  "version": "0.1.0",
+  "description": "Aplicación desktop offline para control de stock",
+  "main": "./out/main/main.js",
+  "author": "Sifal",
+  "license": "MIT",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier --write \"src/renderer/**/*.{ts,tsx,html}\"",
+    "format:check": "prettier --check \"src/renderer/**/*.{ts,tsx,html}\"",
+    "build": "npm run typecheck && npm run lint && electron-vite build",
+    "dist:win": "npm run build && electron-builder --win",
+    "db:generate": "drizzle-kit generate",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "better-sqlite3": "12.11.1",
+    "drizzle-orm": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-router-dom": "latest",
+    "styled-components": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "@eslint/js": "latest",
+    "@types/better-sqlite3": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "drizzle-kit": "latest",
+    "electron": "42.10.1",
+    "electron-builder": "latest",
+    "electron-vite": "latest",
+    "eslint": "latest",
+    "eslint-plugin-react-hooks": "latest",
+    "eslint-plugin-react-refresh": "latest",
+    "globals": "latest",
+    "prettier": "^3.6.2",
+    "typescript": "latest",
+    "typescript-eslint": "latest",
+    "vite": "^7.0.0"
+  }
+}
