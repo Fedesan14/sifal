@@ -24,3 +24,22 @@ export const biomedicalSupplyInputSchema = z.object({
   expirationDate: date,
   location: requiredText
 }).strict()
+
+export const namedEntityInputSchema = z.object({ name: requiredText }).strict()
+export const presentacionInputSchema = z.object({
+  name: requiredText,
+  dosisId: idSchema
+}).strict()
+export const ubicacionInputSchema = z.discriminatedUnion('tipo', [
+  z.object({ tipo: z.literal('TAQUILLA'), nombre: requiredText, numero: z.number().int() }).strict(),
+  z.object({ tipo: z.literal('PANOL'), nombre: requiredText }).strict()
+])
+export const drogaInputSchema = z.object({
+  name: requiredText,
+  cantidad: z.number().int().min(0, 'La cantidad no puede ser negativa'),
+  fechaVencimiento: date,
+  grupoId: idSchema,
+  marcaId: idSchema,
+  presentacionId: idSchema,
+  ubicacionId: idSchema
+}).strict()

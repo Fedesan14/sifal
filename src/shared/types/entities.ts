@@ -27,4 +27,50 @@ export interface BiomedicalSupply {
 
 export type BiomedicalSupplyInput = Omit<BiomedicalSupply, 'id' | 'createdAt' | 'updatedAt'>
 
+interface EntityTimestamps {
+  createdAt: string
+  updatedAt: string
+}
+
+export interface NamedEntity extends EntityTimestamps {
+  id: number
+  name: string
+}
+
+export type Grupo = NamedEntity
+export type Marca = NamedEntity
+export type Dosis = NamedEntity
+export type NamedEntityInput = Pick<NamedEntity, 'name'>
+
+export interface Presentacion extends NamedEntity {
+  dosisId: number
+}
+export type PresentacionInput = Pick<Presentacion, 'name' | 'dosisId'>
+
+interface UbicacionBase extends EntityTimestamps {
+  id: number
+  nombre: string
+}
+export interface Taquilla extends UbicacionBase {
+  tipo: 'TAQUILLA'
+  numero: number
+}
+export interface Panol extends UbicacionBase {
+  tipo: 'PANOL'
+}
+export type Ubicacion = Taquilla | Panol
+export type UbicacionInput =
+  | { tipo: 'TAQUILLA'; nombre: string; numero: number }
+  | { tipo: 'PANOL'; nombre: string }
+
+export interface Droga extends NamedEntity {
+  cantidad: number
+  fechaVencimiento: string
+  grupoId: number
+  marcaId: number
+  presentacionId: number
+  ubicacionId: number
+}
+export type DrogaInput = Pick<Droga, 'name' | 'cantidad' | 'fechaVencimiento' | 'grupoId' | 'marcaId' | 'presentacionId' | 'ubicacionId'>
+
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: { code: string; message: string } }

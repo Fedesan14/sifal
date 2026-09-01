@@ -3,6 +3,7 @@ import { app, BrowserWindow, shell } from 'electron'
 import { initializeDatabase } from './database/database'
 import { registerBiomedicalSupplyIpc } from './ipc/biomedical-supply.ipc'
 import { registerMedicationIpc } from './ipc/medication.ipc'
+import { registerStockIpc } from './ipc/stock.ipc'
 
 function createWindow(): void {
   const window = new BrowserWindow({
@@ -19,6 +20,7 @@ app.whenReady().then(() => {
   initializeDatabase()
   registerMedicationIpc()
   registerBiomedicalSupplyIpc()
+  registerStockIpc()
   createWindow()
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })
 }).catch((error) => { console.error('No se pudo iniciar la aplicación', error); app.quit() })

@@ -12,6 +12,7 @@
     "format": "prettier --write \"src/renderer/**/*.{ts,tsx,html}\"",
     "format:check": "prettier --check \"src/renderer/**/*.{ts,tsx,html}\"",
     "build": "npm run typecheck && npm run lint && electron-vite build",
+    "test": "tsx --test tests/stock.test.ts",
     "dist:win": "npm run build && electron-builder --win",
     "db:generate": "drizzle-kit generate",
     "postinstall": "electron-builder install-app-deps"
@@ -44,5 +45,13 @@
     "typescript": "latest",
     "typescript-eslint": "latest",
     "vite": "^7.0.0"
+  },
+  "build": {
+    "extraResources": [
+      {
+        "from": "src/main/database/migrations",
+        "to": "migrations"
+      }
+    ]
   }
 }

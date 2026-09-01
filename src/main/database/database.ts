@@ -4,9 +4,8 @@ import { app } from 'electron'
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import * as schema from './schema'
-
-export type StockDatabase = ReturnType<typeof drizzle<typeof schema>>
-let db: StockDatabase | undefined
+import { setDatabase, type StockDatabase } from './connection'
+export { getDatabase, type StockDatabase } from './connection'
 
 function migrationDirectory(): string {
   return app.isPackaged
@@ -30,11 +29,7 @@ export function initializeDatabase(): StockDatabase {
   sqlite.pragma('journal_mode = WAL')
   sqlite.pragma('foreign_keys = ON')
   runMigrations(sqlite)
-  db = drizzle(sqlite, { schema })
-  return db
-}
-
-export function getDatabase(): StockDatabase {
-  if (!db) throw new Error('La base de datos no fue inicializada')
-  return db
+  const database = drizzle(sqlite, { schema })
+  setDatabase(database)
+  return database
 }
