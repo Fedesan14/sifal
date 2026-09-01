@@ -9,6 +9,7 @@ const Aside = styled.aside`
   background: #152a32;
   color: white;
   padding: 28px 18px;
+  overflow-y: auto;
   .brand {
     font-size: 21px;
     font-weight: 800;
@@ -40,8 +41,16 @@ export function Layout() {
       <Aside>
         <div className="brand">Sifal Stock</div>
         <div className="section">Stock</div>
-        <NavLink to="/medications">Medicamentos</NavLink>
+        <NavLink to="/drogas">Medicamentos</NavLink>
         <NavLink to="/biomedical-supplies">Biomédicos</NavLink>
+        <div className="section" style={{ marginTop: 28 }}>
+          Catálogos
+        </div>
+        <NavLink to="/grupos">Grupos</NavLink>
+        <NavLink to="/marcas">Marcas</NavLink>
+        <NavLink to="/dosis">Dosis</NavLink>
+        <NavLink to="/presentaciones">Presentaciones</NavLink>
+        <NavLink to="/ubicaciones">Ubicaciones</NavLink>
       </Aside>
       <Outlet />
     </Shell>

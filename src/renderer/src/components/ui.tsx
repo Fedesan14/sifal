@@ -108,11 +108,13 @@ export const FormGrid = styled.form`
     font-size: 13px;
     font-weight: 600;
   }
-  input {
+  input,
+  select {
     border: 1px solid #bdc7ce;
     border-radius: 7px;
     padding: 10px;
     min-width: 0;
+    background: white;
   }
   .full {
     grid-column: 1/-1;
@@ -136,4 +138,10 @@ export const MultipleRegisterContainer = styled.div`
   flex-direction: row;
   align-items: center;
   justify-content: center;
-`
+  gap: 8px;
+  margin-right: auto;
+  label {
+    display: block;
+    font-weight: 500;
+  }
+`;

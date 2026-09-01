@@ -1,11 +1,23 @@
 import { useState, type FormEvent } from "react";
 import type { ZodType } from "zod";
-import { Button, Dialog, FormGrid, MultipleRegisterContainer, Overlay } from "./ui";
+import {
+  Button,
+  Dialog,
+  FormGrid,
+  Message,
+  MultipleRegisterContainer,
+  Overlay,
+} from "./ui";
 
 export interface Field<T> {
-  key: keyof T;
+  key: string;
   label: string;
-  type?: "text" | "number" | "date";
+  type?: "text" | "number" | "date" | "select";
+  options?: { value: string | number; label: string }[];
+  numeric?: boolean;
+  min?: number;
+  visible?: (value: T) => boolean;
+  onChange?: (value: T, raw: string) => T;
 }
 
 export function EntityForm<T extends object>({
@@ -15,6 +27,7 @@ export function EntityForm<T extends object>({
   schema,
   onSave,
   onClose,
+  allowMultiple = false,
 }: {
   title: string;
   fields: Field<T>[];
@@ -22,11 +35,13 @@ export function EntityForm<T extends object>({
   schema: ZodType<T>;
   onSave: (value: T) => Promise<void>;
   onClose: () => void;
+  allowMultiple?: boolean;
 }) {
   const [value, setValue] = useState(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [isRegisterMultiple, setIsRegisterMultiple] = useState<boolean>(false);
+  const [saveAnother, setSaveAnother] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -41,11 +56,21 @@ export function EntityForm<T extends object>({
     }
 
     setSaving(true);
+    setSubmitError("");
     try {
       await onSave(parsed.data);
-      if(!isRegisterMultiple) {
+      if (saveAnother) {
+        setValue(initial);
+        setErrors({});
+      } else {
         onClose();
       }
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo guardar el registro.",
+      );
     } finally {
       setSaving(false);
     }
@@ -59,36 +84,75 @@ export function EntityForm<T extends object>({
     >
       <Dialog role="dialog" aria-modal="true">
         <h2>{title}</h2>
+        {submitError && <Message $error>{submitError}</Message>}
         <FormGrid onSubmit={submit}>
-          {fields.map((field) => (
-            <label key={String(field.key)}>
-              {field.label}
-              <input
-                autoFocus={field === fields[0]}
-                type={field.type ?? "text"}
-                min={field.type === "number" ? 0 : undefined}
-                value={String(value[field.key])}
-                onChange={(e) => {
+          {fields
+            .filter((field) => !field.visible || field.visible(value))
+            .map((field, index) => {
+              const record = value as Record<string, unknown>;
+              const rawValue = record[field.key];
+              const displayValue =
+                typeof rawValue === "number" && Number.isNaN(rawValue)
+                  ? ""
+                  : String(rawValue ?? "");
+              const update = (raw: string) => {
+                if (field.onChange) setValue(field.onChange(value, raw));
+                else {
                   const next =
-                    field.type === "number"
-                      ? Number(e.target.value)
-                      : e.target.value;
+                    field.type === "number" || field.numeric
+                      ? raw === ""
+                        ? Number.NaN
+                        : Number(raw)
+                      : raw;
                   setValue({ ...value, [field.key]: next });
-                  setErrors({ ...errors, [String(field.key)]: "" });
-                }}
-              />
-              {errors[String(field.key)] && (
-                <span className="field-error">{errors[String(field.key)]}</span>
-              )}
-            </label>
-          ))}
+                }
+                setErrors({ ...errors, [field.key]: "" });
+              };
+              return (
+                <label key={String(field.key)}>
+                  {field.label}
+                  {field.type === "select" ? (
+                    <select
+                      autoFocus={index === 0}
+                      value={displayValue}
+                      onChange={(event) => update(event.target.value)}
+                    >
+                      <option value="">Seleccionar…</option>
+                      {field.options?.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      autoFocus={index === 0}
+                      type={field.type ?? "text"}
+                      min={field.min}
+                      value={displayValue}
+                      onChange={(event) => update(event.target.value)}
+                    />
+                  )}
+                  {errors[String(field.key)] && (
+                    <span className="field-error">
+                      {errors[String(field.key)]}
+                    </span>
+                  )}
+                </label>
+              );
+            })}
           <div className="buttons">
-            <MultipleRegisterContainer>
-              <label>
-                Activar carga multiple
-              </label>
-              <input type="checkbox" checked={isRegisterMultiple} onChange={(value) => setIsRegisterMultiple(value.target.checked)} />
-            </MultipleRegisterContainer>
+            {allowMultiple && (
+              <MultipleRegisterContainer>
+                <input
+                  id="save-another"
+                  type="checkbox"
+                  checked={saveAnother}
+                  onChange={(event) => setSaveAnother(event.target.checked)}
+                />
+                <label htmlFor="save-another">Guardar y cargar otro</label>
+              </MultipleRegisterContainer>
+            )}
             <Button type="button" $secondary onClick={onClose}>
               Cancelar
             </Button>

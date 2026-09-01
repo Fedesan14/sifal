@@ -75,7 +75,9 @@ export function MedicationsPage() {
               {crud.items.map((item) => (
                 <tr key={item.id}>
                   {fields.map((f) => (
-                    <td key={String(f.key)}>{String(item[f.key])}</td>
+                    <td key={String(f.key)}>
+                      {String(item[f.key as keyof Medication])}
+                    </td>
                   ))}
                   <td className="actions">
                     <Button $secondary onClick={() => setEditing(item)}>
