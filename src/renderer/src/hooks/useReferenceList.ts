@@ -27,5 +27,9 @@ export function useReferenceList<T, TInput>(api: CrudApi<T, TInput>) {
     };
   }, [api]);
 
-  return { items, loading, error };
+  function add(item: T) {
+    setItems((current) => [item, ...current]);
+  }
+
+  return { items, loading, error, add };
 }

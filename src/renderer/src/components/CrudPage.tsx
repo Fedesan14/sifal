@@ -58,9 +58,7 @@ export function CrudPage<T extends { id: number }, TInput extends object>({
           {newLabel}
         </Button>
       </Header>
-      {createDisabled && createDisabledMessage && (
-        <Message>{createDisabledMessage}</Message>
-      )}
+      {createDisabledMessage && <Message>{createDisabledMessage}</Message>}
       {crud.error && <Message $error>{crud.error}</Message>}
       {crud.notice && <Message>{crud.notice}</Message>}
       <Card>

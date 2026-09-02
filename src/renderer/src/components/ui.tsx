@@ -131,6 +131,24 @@ export const FormGrid = styled.form`
     color: #b62c2c;
     font-weight: 400;
   }
+  .field-label-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 24px;
+  }
+  .field-action {
+    border: 0;
+    padding: 2px 0;
+    margin-left: auto;
+    color: #166b57;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .field-action + .field-action {
+    margin-left: 0;
+  }
 `;
 
 export const MultipleRegisterContainer = styled.div`

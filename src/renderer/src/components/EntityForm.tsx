@@ -18,6 +18,10 @@ export interface Field<T> {
   min?: number;
   visible?: (value: T) => boolean;
   onChange?: (value: T, raw: string) => T;
+  actions?: {
+    label: string;
+    onClick: (selectValue: (value: string | number) => void) => void;
+  }[];
 }
 
 export function EntityForm<T extends object>({
@@ -110,7 +114,30 @@ export function EntityForm<T extends object>({
               };
               return (
                 <label key={String(field.key)}>
-                  {field.label}
+                  <span className="field-label-row">
+                    <span>{field.label}</span>
+                    {field.actions?.map((action) => (
+                      <button
+                        className="field-action"
+                        key={action.label}
+                        type="button"
+                        onClick={() =>
+                          action.onClick((next) => {
+                            setValue((current) => ({
+                              ...current,
+                              [field.key]: next,
+                            }));
+                            setErrors((current) => ({
+                              ...current,
+                              [field.key]: "",
+                            }));
+                          })
+                        }
+                      >
+                        {action.label}
+                      </button>
+                    ))}
+                  </span>
                   {field.type === "select" ? (
                     <select
                       autoFocus={index === 0}
