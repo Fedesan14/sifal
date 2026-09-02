@@ -78,7 +78,7 @@ export class MedicamentoRepository {
       const timestamp = now()
       const { stocks, ...medicamento } = input
       const row = tx.insert(medicamentos).values({ ...medicamento, createdAt: timestamp, updatedAt: timestamp }).returning().get()
-      tx.insert(medicamentosStock).values(stocks.map((stock) => ({ ...stock, medicamentoId: row.id }))).run()
+      if (stocks.length > 0) tx.insert(medicamentosStock).values(stocks.map((stock) => ({ ...stock, medicamentoId: row.id }))).run()
       return { ...row, cantidad: stocks.reduce((total, stock) => total + stock.cantidad, 0), stocks }
     })
   }
@@ -87,7 +87,7 @@ export class MedicamentoRepository {
       const { stocks, ...medicamento } = input
       const row = tx.update(medicamentos).set({ ...medicamento, updatedAt: now() }).where(eq(medicamentos.id, id)).returning().get()
       tx.delete(medicamentosStock).where(eq(medicamentosStock.medicamentoId, id)).run()
-      tx.insert(medicamentosStock).values(stocks.map((stock) => ({ ...stock, medicamentoId: id }))).run()
+      if (stocks.length > 0) tx.insert(medicamentosStock).values(stocks.map((stock) => ({ ...stock, medicamentoId: id }))).run()
       return row ? { ...row, cantidad: stocks.reduce((total, stock) => total + stock.cantidad, 0), stocks } : undefined
     })
   }

@@ -44,6 +44,6 @@ export const medicamentoInputSchema = z.object({
   stocks: z.array(z.object({
     ubicacionId: idSchema,
     cantidad: z.number().int().min(0, 'La cantidad no puede ser negativa')
-  }).strict()).min(1, 'Ingresá el stock de al menos una ubicación')
+  }).strict())
     .refine((items) => new Set(items.map((item) => item.ubicacionId)).size === items.length, 'No se puede repetir una ubicación')
 }).strict()

@@ -47,7 +47,7 @@ export function MedicamentosPage() {
     () => new Map(ubicaciones.items.map((item) => [item.id, item.nombre])),
     [ubicaciones.items],
   );
-  const requiredLists = [drogas, marcas, presentaciones, ubicaciones];
+  const requiredLists = [drogas, marcas, presentaciones];
   const referencesLoading = requiredLists.some((list) => list.loading);
   const missingReferences = requiredLists.some(
     (list) => list.items.length === 0,
@@ -166,7 +166,7 @@ export function MedicamentosPage() {
           },
           {
             key: "stocks",
-            label: "Stock por ubicación",
+            label: "Stock por ubicación (opcional)",
             type: "location-stock",
             actions: [quickAction("ubicacion", "+ Crear ubicación")],
             options: ubicaciones.items.map((item) => ({
@@ -224,7 +224,7 @@ export function MedicamentosPage() {
                   (stock) =>
                     `${ubicacionNames.get(stock.ubicacionId) ?? `#${stock.ubicacionId}`}: ${stock.cantidad}`,
                 )
-                .join(", "),
+                .join(", ") || "Sin stock asignado",
           },
           {
             key: "dosis",

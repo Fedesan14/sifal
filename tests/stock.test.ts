@@ -74,22 +74,22 @@ test('0004 conserva el stock y convierte la ubicación a nombre simple', () => {
   } finally { db.close() }
 })
 
-test('los payloads aceptan varias ubicaciones y rechazan duplicados', () => {
+test('los payloads permiten omitir el stock y rechazan ubicaciones duplicadas', () => {
   const valid = { drogaId: 1, fechaVencimiento: '2028-01-01', marcaId: 1, presentacionId: 1, dosisId: 1, stocks: [{ ubicacionId: 1, cantidad: 2 }, { ubicacionId: 2, cantidad: 3 }] }
   assert.equal(medicamentoInputSchema.safeParse(valid).success, true)
-  assert.equal(medicamentoInputSchema.safeParse({ ...valid, stocks: [] }).success, false)
+  assert.equal(medicamentoInputSchema.safeParse({ ...valid, stocks: [] }).success, true)
   assert.equal(medicamentoInputSchema.safeParse({ ...valid, stocks: [{ ubicacionId: 1, cantidad: 2 }, { ubicacionId: 1, cantidad: 3 }] }).success, false)
   assert.equal(ubicacionInputSchema.safeParse({ nombre: 'PAÑOL FARMACIA' }).success, true)
   assert.equal(ubicacionInputSchema.safeParse({ tipo: 'PANOL', nombre: 'Farmacia' }).success, false)
 })
 
-test('IPC devuelve el detalle del stock inválido', async () => {
+test('IPC devuelve el detalle de los campos inválidos', async () => {
   const result = await safeHandler(() => medicamentoInputSchema.parse({ drogaId: 0, fechaVencimiento: 'inválida', marcaId: 1, presentacionId: 1, dosisId: 1, stocks: [] }))
   assert.equal(result.ok, false)
   if (!result.ok) {
     assert.equal(result.error.code, 'VALIDATION_ERROR')
     assert.ok(result.error.details?.drogaId)
-    assert.ok(result.error.details?.stocks)
+    assert.equal(result.error.details?.stocks, undefined)
   }
 })
 
