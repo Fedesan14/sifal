@@ -39,7 +39,7 @@ export function Layout() {
   return (
     <Shell>
       <Aside>
-        <div className="brand">Sifal Stock</div>
+        <div className="brand">Sifal</div>
         <div className="section">Stock</div>
         <NavLink to="/medicamentos">Medicamentos</NavLink>
         {/* <NavLink to="/biomedical-supplies">Biomédicos</NavLink> */}

@@ -30,7 +30,6 @@ function NamedEntitiesPage({
       emptyInput={{ name: "" }}
       formFields={[{ key: "name", label: "Nombre" }]}
       tableFields={[
-        { key: "id", label: "ID", render: (item) => item.id },
         { key: "name", label: "Nombre", render: (item) => item.name },
       ]}
       toInput={(item) => ({ name: item.name })}
