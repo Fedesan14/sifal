@@ -1,5 +1,5 @@
 {
-  "name": "sifal-stock",
+  "name": "Sifal",
   "version": "1.0.0",
   "description": "Aplicación desktop offline para control de stock",
   "main": "./out/main/main.js",
@@ -48,10 +48,12 @@
   },
   "build": {
     "appId": "com.sifal.stock",
-    "productName": "Sifal Stock",
+    "productName": "Sifal",
+    "executableName": "Sifal",
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Sifal-${version}.${ext}"
     },
     "extraResources": [
       {
