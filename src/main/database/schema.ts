@@ -62,11 +62,18 @@ export const ubicaciones = sqliteTable('ubicaciones', {
 export const drogas = sqliteTable('drogas', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
+  grupoId: integer('grupo_id').notNull().references(() => grupos.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
+  ...timestamps
+})
+
+export const medicamentos = sqliteTable('medicamentos', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  drogaId: integer('droga_id').notNull().references(() => drogas.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
   cantidad: integer('cantidad').notNull(),
   fechaVencimiento: text('fecha_vencimiento').notNull(),
-  grupoId: integer('grupo_id').notNull().references(() => grupos.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
   marcaId: integer('marca_id').notNull().references(() => marcas.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
   presentacionId: integer('presentacion_id').notNull().references(() => presentaciones.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
   ubicacionId: integer('ubicacion_id').notNull().references(() => ubicaciones.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
   ...timestamps
-}, (table) => [check('drogas_cantidad_nonnegative', sql`${table.cantidad} >= 0`)])
+}, (table) => [check('medicamentos_cantidad_nonnegative', sql`${table.cantidad} >= 0`)])

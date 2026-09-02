@@ -1,7 +1,7 @@
 import { desc, eq } from 'drizzle-orm'
-import type { DrogaInput, NamedEntityInput, PresentacionInput, Ubicacion, UbicacionInput } from '../../shared/types/entities'
+import type { DrogaInput, MedicamentoInput, NamedEntityInput, PresentacionInput, Ubicacion, UbicacionInput } from '../../shared/types/entities'
 import { getDatabase, type StockDatabase } from '../database/connection'
-import { dosis, drogas, grupos, marcas, presentaciones, ubicaciones } from '../database/schema'
+import { dosis, drogas, grupos, marcas, medicamentos, presentaciones, ubicaciones } from '../database/schema'
 
 const now = () => new Date().toISOString()
 
@@ -22,7 +22,7 @@ export class MarcaRepository {
   create(input: NamedEntityInput) { const timestamp = now(); return this.db.insert(marcas).values({ ...input, createdAt: timestamp, updatedAt: timestamp }).returning().get() }
   update(id: number, input: NamedEntityInput) { return this.db.update(marcas).set({ ...input, updatedAt: now() }).where(eq(marcas.id, id)).returning().get() }
   delete(id: number) { return this.db.delete(marcas).where(eq(marcas.id, id)).returning().get() }
-  isUsed(id: number) { return Boolean(this.db.select({ id: drogas.id }).from(drogas).where(eq(drogas.marcaId, id)).get()) }
+  isUsed(id: number) { return Boolean(this.db.select({ id: medicamentos.id }).from(medicamentos).where(eq(medicamentos.marcaId, id)).get()) }
 }
 
 export class DosisRepository {
@@ -42,7 +42,7 @@ export class PresentacionRepository {
   create(input: PresentacionInput) { const timestamp = now(); return this.db.insert(presentaciones).values({ ...input, createdAt: timestamp, updatedAt: timestamp }).returning().get() }
   update(id: number, input: PresentacionInput) { return this.db.update(presentaciones).set({ ...input, updatedAt: now() }).where(eq(presentaciones.id, id)).returning().get() }
   delete(id: number) { return this.db.delete(presentaciones).where(eq(presentaciones.id, id)).returning().get() }
-  isUsed(id: number) { return Boolean(this.db.select({ id: drogas.id }).from(drogas).where(eq(drogas.presentacionId, id)).get()) }
+  isUsed(id: number) { return Boolean(this.db.select({ id: medicamentos.id }).from(medicamentos).where(eq(medicamentos.presentacionId, id)).get()) }
 }
 
 function asUbicacion(row: typeof ubicaciones.$inferSelect): Ubicacion {
@@ -58,7 +58,7 @@ export class UbicacionRepository {
   create(input: UbicacionInput) { const timestamp = now(); const row = this.db.insert(ubicaciones).values({ ...input, numero: input.tipo === 'TAQUILLA' ? input.numero : null, createdAt: timestamp, updatedAt: timestamp }).returning().get(); return asUbicacion(row) }
   update(id: number, input: UbicacionInput) { const row = this.db.update(ubicaciones).set({ ...input, numero: input.tipo === 'TAQUILLA' ? input.numero : null, updatedAt: now() }).where(eq(ubicaciones.id, id)).returning().get(); return row ? asUbicacion(row) : undefined }
   delete(id: number) { const row = this.db.delete(ubicaciones).where(eq(ubicaciones.id, id)).returning().get(); return row ? asUbicacion(row) : undefined }
-  isUsed(id: number) { return Boolean(this.db.select({ id: drogas.id }).from(drogas).where(eq(drogas.ubicacionId, id)).get()) }
+  isUsed(id: number) { return Boolean(this.db.select({ id: medicamentos.id }).from(medicamentos).where(eq(medicamentos.ubicacionId, id)).get()) }
 }
 
 export class DrogaRepository {
@@ -68,4 +68,14 @@ export class DrogaRepository {
   create(input: DrogaInput) { const timestamp = now(); return this.db.insert(drogas).values({ ...input, createdAt: timestamp, updatedAt: timestamp }).returning().get() }
   update(id: number, input: DrogaInput) { return this.db.update(drogas).set({ ...input, updatedAt: now() }).where(eq(drogas.id, id)).returning().get() }
   delete(id: number) { return this.db.delete(drogas).where(eq(drogas.id, id)).returning().get() }
+  isUsed(id: number) { return Boolean(this.db.select({ id: medicamentos.id }).from(medicamentos).where(eq(medicamentos.drogaId, id)).get()) }
+}
+
+export class MedicamentoRepository {
+  constructor(private readonly db: StockDatabase = getDatabase()) {}
+  list() { return this.db.select().from(medicamentos).orderBy(desc(medicamentos.id)).all() }
+  get(id: number) { return this.db.select().from(medicamentos).where(eq(medicamentos.id, id)).get() }
+  create(input: MedicamentoInput) { const timestamp = now(); return this.db.insert(medicamentos).values({ ...input, createdAt: timestamp, updatedAt: timestamp }).returning().get() }
+  update(id: number, input: MedicamentoInput) { return this.db.update(medicamentos).set({ ...input, updatedAt: now() }).where(eq(medicamentos.id, id)).returning().get() }
+  delete(id: number) { return this.db.delete(medicamentos).where(eq(medicamentos.id, id)).returning().get() }
 }

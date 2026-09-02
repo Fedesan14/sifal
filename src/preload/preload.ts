@@ -25,6 +25,7 @@ const api: DesktopApi = {
   dosis: crud('dosis'),
   presentaciones: crud('presentaciones'),
   ubicaciones: crud('ubicaciones'),
-  drogas: crud('drogas')
+  drogas: crud('drogas'),
+  medicamentos: crud('medicamentos')
 }
 contextBridge.exposeInMainWorld('api', api)

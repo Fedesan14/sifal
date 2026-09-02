@@ -1,5 +1,5 @@
-import type { DrogaInput, NamedEntity, NamedEntityInput, PresentacionInput, UbicacionInput } from '../../shared/types/entities'
-import { DosisRepository, DrogaRepository, GrupoRepository, MarcaRepository, PresentacionRepository, UbicacionRepository } from '../repositories/stock.repository'
+import type { DrogaInput, MedicamentoInput, NamedEntity, NamedEntityInput, PresentacionInput, UbicacionInput } from '../../shared/types/entities'
+import { DosisRepository, DrogaRepository, GrupoRepository, MarcaRepository, MedicamentoRepository, PresentacionRepository, UbicacionRepository } from '../repositories/stock.repository'
 
 interface NamedRepository {
   list(): NamedEntity[]
@@ -45,17 +45,30 @@ export class UbicacionService {
 export class DrogaService {
   constructor(
     private readonly repository = new DrogaRepository(),
-    private readonly grupoRepository = new GrupoRepository(),
+    private readonly grupoRepository = new GrupoRepository()
+  ) {}
+  list() { return this.repository.list() }
+  get(id: number) { const item = this.repository.get(id); if (!item) throw new Error('NOT_FOUND'); return item }
+  private assertReferences(input: DrogaInput) { if (!this.grupoRepository.get(input.grupoId)) throw new Error('REFERENCE_NOT_FOUND') }
+  create(input: DrogaInput) { this.assertReferences(input); return this.repository.create(input) }
+  update(id: number, input: DrogaInput) { if (!this.repository.get(id)) throw new Error('NOT_FOUND'); this.assertReferences(input); return this.repository.update(id, input) }
+  delete(id: number) { if (!this.repository.get(id)) throw new Error('NOT_FOUND'); if (this.repository.isUsed(id)) throw new Error('IN_USE'); this.repository.delete(id) }
+}
+
+export class MedicamentoService {
+  constructor(
+    private readonly repository = new MedicamentoRepository(),
+    private readonly drogaRepository = new DrogaRepository(),
     private readonly marcaRepository = new MarcaRepository(),
     private readonly presentacionRepository = new PresentacionRepository(),
     private readonly ubicacionRepository = new UbicacionRepository()
   ) {}
   list() { return this.repository.list() }
   get(id: number) { const item = this.repository.get(id); if (!item) throw new Error('NOT_FOUND'); return item }
-  private assertReferences(input: DrogaInput) {
-    if (!this.grupoRepository.get(input.grupoId) || !this.marcaRepository.get(input.marcaId) || !this.presentacionRepository.get(input.presentacionId) || !this.ubicacionRepository.get(input.ubicacionId)) throw new Error('REFERENCE_NOT_FOUND')
+  private assertReferences(input: MedicamentoInput) {
+    if (!this.drogaRepository.get(input.drogaId) || !this.marcaRepository.get(input.marcaId) || !this.presentacionRepository.get(input.presentacionId) || !this.ubicacionRepository.get(input.ubicacionId)) throw new Error('REFERENCE_NOT_FOUND')
   }
-  create(input: DrogaInput) { this.assertReferences(input); return this.repository.create(input) }
-  update(id: number, input: DrogaInput) { if (!this.repository.get(id)) throw new Error('NOT_FOUND'); this.assertReferences(input); return this.repository.update(id, input) }
+  create(input: MedicamentoInput) { this.assertReferences(input); return this.repository.create(input) }
+  update(id: number, input: MedicamentoInput) { if (!this.repository.get(id)) throw new Error('NOT_FOUND'); this.assertReferences(input); return this.repository.update(id, input) }
   delete(id: number) { if (!this.repository.delete(id)) throw new Error('NOT_FOUND') }
 }

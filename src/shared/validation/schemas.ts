@@ -36,9 +36,13 @@ export const ubicacionInputSchema = z.discriminatedUnion('tipo', [
 ])
 export const drogaInputSchema = z.object({
   name: requiredText,
+  grupoId: idSchema
+}).strict()
+export const medicamentoInputSchema = z.object({
+  name: requiredText,
+  drogaId: idSchema,
   cantidad: z.number().int().min(0, 'La cantidad no puede ser negativa'),
   fechaVencimiento: date,
-  grupoId: idSchema,
   marcaId: idSchema,
   presentacionId: idSchema,
   ubicacionId: idSchema

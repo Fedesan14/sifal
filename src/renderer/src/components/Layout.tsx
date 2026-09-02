@@ -41,12 +41,13 @@ export function Layout() {
       <Aside>
         <div className="brand">Sifal Stock</div>
         <div className="section">Stock</div>
-        <NavLink to="/drogas">Medicamentos</NavLink>
+        <NavLink to="/medicamentos">Medicamentos</NavLink>
         <NavLink to="/biomedical-supplies">Biomédicos</NavLink>
         <div className="section" style={{ marginTop: 28 }}>
           Catálogos
         </div>
         <NavLink to="/grupos">Grupos</NavLink>
+        <NavLink to="/drogas">Drogas</NavLink>
         <NavLink to="/marcas">Marcas</NavLink>
         <NavLink to="/dosis">Dosis</NavLink>
         <NavLink to="/presentaciones">Presentaciones</NavLink>

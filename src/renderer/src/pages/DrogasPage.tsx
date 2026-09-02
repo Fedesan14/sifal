@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
-import type { Droga, DrogaInput } from "../../../shared/types/entities";
-import { drogaInputSchema } from "../../../shared/validation/schemas";
+import type {
+  Medicamento,
+  MedicamentoInput,
+} from "../../../shared/types/entities";
+import { medicamentoInputSchema } from "../../../shared/validation/schemas";
 import { CrudPage } from "../components/CrudPage";
 import {
   QuickCreateRelated,
@@ -9,18 +12,24 @@ import {
 } from "../components/QuickCreateRelated";
 import { useReferenceList } from "../hooks/useReferenceList";
 
-export function DrogasPage() {
+export function MedicamentosPage() {
   const grupos = useReferenceList(window.api.grupos);
+  const drogas = useReferenceList(window.api.drogas);
   const marcas = useReferenceList(window.api.marcas);
+  const dosis = useReferenceList(window.api.dosis);
   const presentaciones = useReferenceList(window.api.presentaciones);
   const ubicaciones = useReferenceList(window.api.ubicaciones);
-  const dosis = useReferenceList(window.api.dosis);
   const [quickCreate, setQuickCreate] = useState<QuickCreateRequest | null>(
     null,
   );
+
   const grupoNames = useMemo(
     () => new Map(grupos.items.map((item) => [item.id, item.name])),
     [grupos.items],
+  );
+  const drogaById = useMemo(
+    () => new Map(drogas.items.map((item) => [item.id, item])),
+    [drogas.items],
   );
   const marcaNames = useMemo(
     () => new Map(marcas.items.map((item) => [item.id, item.name])),
@@ -42,12 +51,12 @@ export function DrogasPage() {
       ),
     [ubicaciones.items],
   );
-  const referenceLists = [grupos, marcas, presentaciones, ubicaciones];
-  const referencesLoading = referenceLists.some((list) => list.loading);
-  const missingReferences = referenceLists.some(
+  const requiredLists = [drogas, marcas, presentaciones, ubicaciones];
+  const referencesLoading = requiredLists.some((list) => list.loading);
+  const missingReferences = requiredLists.some(
     (list) => list.items.length === 0,
   );
-  const referenceError = referenceLists.map((list) => list.error).find(Boolean);
+  const referenceError = requiredLists.map((list) => list.error).find(Boolean);
   const catalogMessage =
     referenceError ||
     (!referencesLoading && missingReferences
@@ -58,11 +67,11 @@ export function DrogasPage() {
     onClick: (select: (value: string | number) => void) =>
       setQuickCreate({ kind, select: (id) => select(id) }),
   });
-  const empty: DrogaInput = {
+  const empty: MedicamentoInput = {
     name: "",
+    drogaId: drogas.items[0]?.id ?? Number.NaN,
     cantidad: 0,
     fechaVencimiento: "",
-    grupoId: grupos.items[0]?.id ?? Number.NaN,
     marcaId: marcas.items[0]?.id ?? Number.NaN,
     presentacionId: presentaciones.items[0]?.id ?? Number.NaN,
     ubicacionId: ubicaciones.items[0]?.id ?? Number.NaN,
@@ -70,33 +79,44 @@ export function DrogasPage() {
 
   return (
     <>
-      <CrudPage<Droga, DrogaInput>
+      <CrudPage<Medicamento, MedicamentoInput>
         title="Medicamentos"
-        description="Administración del stock normalizado de medicamentos."
+        description="Administración del stock de medicamentos. El grupo se determina por la droga seleccionada."
         newLabel="Nuevo medicamento"
         emptyMessage="No hay medicamentos cargados."
-        api={window.api.drogas}
-        schema={drogaInputSchema}
+        api={window.api.medicamentos}
+        schema={medicamentoInputSchema}
         emptyInput={empty}
         createDisabledMessage={catalogMessage}
         formFields={[
-          { key: "name", label: "Nombre" },
+          { key: "name", label: "Nombre del medicamento" },
+          {
+            key: "drogaId",
+            label: "Droga",
+            type: "select",
+            numeric: true,
+            actions: [quickAction("droga", "+ Crear droga")],
+            options: drogas.items.map((item) => ({
+              value: item.id,
+              label: `${item.name}`,
+            })),
+          },
+          {
+            key: "grupo",
+            label: "Grupo de la droga",
+            type: "display",
+            displayValue: (value) => {
+              const droga = drogaById.get(value.drogaId);
+              return droga
+                ? (grupoNames.get(droga.grupoId) ?? "Grupo sin cargar")
+                : "Seleccioná una droga";
+            },
+          },
           { key: "cantidad", label: "Cantidad", type: "number", min: 0 },
           {
             key: "fechaVencimiento",
             label: "Fecha de vencimiento",
             type: "date",
-          },
-          {
-            key: "grupoId",
-            label: "Grupo",
-            type: "select",
-            numeric: true,
-            actions: [quickAction("grupo", "+ Crear grupo")],
-            options: grupos.items.map((item) => ({
-              value: item.id,
-              label: item.name,
-            })),
           },
           {
             key: "marcaId",
@@ -133,7 +153,27 @@ export function DrogasPage() {
           },
         ]}
         tableFields={[
-          { key: "name", label: "Medicamento", render: (item) => item.name },
+          {
+            key: "name",
+            label: "Medicamento",
+            render: (item) => item.name,
+          },
+          {
+            key: "droga",
+            label: "Droga",
+            render: (item) =>
+              drogaById.get(item.drogaId)?.name ?? `#${item.drogaId}`,
+          },
+          {
+            key: "grupo",
+            label: "Grupo",
+            render: (item) => {
+              const droga = drogaById.get(item.drogaId);
+              return droga
+                ? (grupoNames.get(droga.grupoId) ?? `#${droga.grupoId}`)
+                : "—";
+            },
+          },
           {
             key: "cantidad",
             label: "Cantidad",
@@ -143,12 +183,6 @@ export function DrogasPage() {
             key: "fecha",
             label: "Vencimiento",
             render: (item) => item.fechaVencimiento,
-          },
-          {
-            key: "grupo",
-            label: "Grupo",
-            render: (item) =>
-              grupoNames.get(item.grupoId) ?? `#${item.grupoId}`,
           },
           {
             key: "marca",
@@ -172,9 +206,9 @@ export function DrogasPage() {
         ]}
         toInput={(item) => ({
           name: item.name,
+          drogaId: item.drogaId,
           cantidad: item.cantidad,
           fechaVencimiento: item.fechaVencimiento,
-          grupoId: item.grupoId,
           marcaId: item.marcaId,
           presentacionId: item.presentacionId,
           ubicacionId: item.ubicacionId,
@@ -186,6 +220,7 @@ export function DrogasPage() {
           request={quickCreate}
           onClose={() => setQuickCreate(null)}
           grupos={grupos}
+          drogas={drogas}
           marcas={marcas}
           dosis={dosis}
           presentaciones={presentaciones}

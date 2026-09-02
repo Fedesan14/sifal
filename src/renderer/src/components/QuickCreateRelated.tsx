@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type {
   Dosis,
+  Droga,
   NamedEntity,
   NamedEntityInput,
   Presentacion,
@@ -15,7 +16,7 @@ import {
 import { EntityForm, type Field } from "./EntityForm";
 
 export type QuickEntityKind =
-  "grupo" | "marca" | "dosis" | "presentacion" | "ubicacion";
+  "grupo" | "marca" | "dosis" | "droga" | "presentacion" | "ubicacion";
 
 export interface QuickCreateRequest {
   kind: QuickEntityKind;
@@ -39,6 +40,19 @@ const quickPresentationSchema = z
   );
 
 type QuickPresentationInput = z.infer<typeof quickPresentationSchema>;
+
+const quickDrugSchema = z
+  .object({
+    name: z.string().trim().min(1, "Este campo es obligatorio"),
+    grupoId: z.union([idSchema, z.nan()]),
+    nuevoGrupo: z.string(),
+  })
+  .refine(
+    (value) => Number.isFinite(value.grupoId) || value.nuevoGrupo.trim(),
+    { path: ["grupoId"], message: "Seleccioná o creá un grupo" },
+  );
+
+type QuickDrugInput = z.infer<typeof quickDrugSchema>;
 
 const ubicacionFields: Field<UbicacionInput>[] = [
   {
@@ -81,6 +95,7 @@ export function QuickCreateRelated({
   request,
   onClose,
   grupos,
+  drogas,
   marcas,
   dosis,
   presentaciones,
@@ -89,6 +104,7 @@ export function QuickCreateRelated({
   request: QuickCreateRequest;
   onClose: () => void;
   grupos: ReferenceState<NamedEntity>;
+  drogas: ReferenceState<Droga>;
   marcas: ReferenceState<NamedEntity>;
   dosis: ReferenceState<Dosis>;
   presentaciones: ReferenceState<Presentacion>;
@@ -135,6 +151,51 @@ export function QuickCreateRelated({
             window.api.ubicaciones.create(input),
           );
           ubicaciones.add(created);
+          selectCreated(created.id);
+        }}
+      />
+    );
+  }
+
+  if (request.kind === "droga") {
+    const drugFields: Field<QuickDrugInput>[] = [
+      { key: "name", label: "Droga" },
+      {
+        key: "grupoId",
+        label: "Grupo existente",
+        type: "select",
+        numeric: true,
+        options: grupos.items.map((item) => ({
+          value: item.id,
+          label: item.name,
+        })),
+      },
+      { key: "nuevoGrupo", label: "O crear un grupo nuevo" },
+    ];
+    return (
+      <EntityForm<QuickDrugInput>
+        title="Nueva droga"
+        fields={drugFields}
+        initial={{
+          name: "",
+          grupoId: grupos.items[0]?.id ?? Number.NaN,
+          nuevoGrupo: "",
+        }}
+        schema={quickDrugSchema}
+        onClose={onClose}
+        onSave={async (input) => {
+          let grupoId = input.grupoId;
+          if (input.nuevoGrupo.trim()) {
+            const createdGroup = await requireCreated(
+              window.api.grupos.create({ name: input.nuevoGrupo }),
+            );
+            grupos.add(createdGroup);
+            grupoId = createdGroup.id;
+          }
+          const created = await requireCreated(
+            window.api.drogas.create({ name: input.name, grupoId }),
+          );
+          drogas.add(created);
           selectCreated(created.id);
         }}
       />

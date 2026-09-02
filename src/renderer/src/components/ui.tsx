@@ -131,6 +131,17 @@ export const FormGrid = styled.form`
     color: #b62c2c;
     font-weight: 400;
   }
+  .field-display {
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #d9e0e4;
+    border-radius: 7px;
+    background: #f3f6f7;
+    color: #42515b;
+    font-weight: 500;
+  }
   .field-label-row {
     display: flex;
     align-items: center;

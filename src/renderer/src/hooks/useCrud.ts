@@ -30,7 +30,13 @@ export function useCrud<T extends { id: number }, TInput>(
   }, [load]);
   async function save(id: number | undefined, input: TInput) {
     const r = id ? await api.update(id, input) : await api.create(input);
-    if (!r.ok) throw new Error(r.error.message);
+    if (!r.ok) {
+      const error = new Error(r.error.message) as Error & {
+        details?: Record<string, string>;
+      };
+      error.details = r.error.details;
+      throw error;
+    }
     setNotice(id ? "Registro actualizado." : "Registro creado.");
     await load();
   }

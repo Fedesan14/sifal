@@ -12,12 +12,13 @@ import {
 export interface Field<T> {
   key: string;
   label: string;
-  type?: "text" | "number" | "date" | "select";
+  type?: "text" | "number" | "date" | "select" | "display";
   options?: { value: string | number; label: string }[];
   numeric?: boolean;
   min?: number;
   visible?: (value: T) => boolean;
   onChange?: (value: T, raw: string) => T;
+  displayValue?: (value: T) => string;
   actions?: {
     label: string;
     onClick: (selectValue: (value: string | number) => void) => void;
@@ -56,6 +57,7 @@ export function EntityForm<T extends object>({
           parsed.error.issues.map((i) => [String(i.path[0]), i.message]),
         ),
       );
+      setSubmitError("Revisá los campos marcados antes de guardar.");
       return;
     }
 
@@ -70,6 +72,13 @@ export function EntityForm<T extends object>({
         onClose();
       }
     } catch (error) {
+      const details =
+        error instanceof Error &&
+        "details" in error &&
+        typeof error.details === "object"
+          ? (error.details as Record<string, string>)
+          : undefined;
+      if (details) setErrors(details);
       setSubmitError(
         error instanceof Error
           ? error.message
@@ -111,6 +120,7 @@ export function EntityForm<T extends object>({
                   setValue({ ...value, [field.key]: next });
                 }
                 setErrors({ ...errors, [field.key]: "" });
+                setSubmitError("");
               };
               return (
                 <label key={String(field.key)}>
@@ -138,7 +148,11 @@ export function EntityForm<T extends object>({
                       </button>
                     ))}
                   </span>
-                  {field.type === "select" ? (
+                  {field.type === "display" ? (
+                    <output className="field-display">
+                      {field.displayValue?.(value) || "—"}
+                    </output>
+                  ) : field.type === "select" ? (
                     <select
                       autoFocus={index === 0}
                       value={displayValue}

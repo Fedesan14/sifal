@@ -1,8 +1,8 @@
 import { ipcMain } from 'electron'
 import type { z } from 'zod'
-import type { DrogaInput, NamedEntityInput, PresentacionInput, UbicacionInput } from '../../shared/types/entities'
-import { drogaInputSchema, idSchema, namedEntityInputSchema, presentacionInputSchema, ubicacionInputSchema } from '../../shared/validation/schemas'
-import { DosisService, DrogaService, GrupoService, MarcaService, PresentacionService, UbicacionService } from '../services/stock.service'
+import type { DrogaInput, MedicamentoInput, NamedEntityInput, PresentacionInput, UbicacionInput } from '../../shared/types/entities'
+import { drogaInputSchema, idSchema, medicamentoInputSchema, namedEntityInputSchema, presentacionInputSchema, ubicacionInputSchema } from '../../shared/validation/schemas'
+import { DosisService, DrogaService, GrupoService, MarcaService, MedicamentoService, PresentacionService, UbicacionService } from '../services/stock.service'
 import { safeHandler } from './handler'
 
 interface CrudService<TInput> {
@@ -28,4 +28,5 @@ export function registerStockIpc(): void {
   registerCrud<PresentacionInput>('presentaciones', presentacionInputSchema, new PresentacionService())
   registerCrud<UbicacionInput>('ubicaciones', ubicacionInputSchema, new UbicacionService())
   registerCrud<DrogaInput>('drogas', drogaInputSchema, new DrogaService())
+  registerCrud<MedicamentoInput>('medicamentos', medicamentoInputSchema, new MedicamentoService())
 }

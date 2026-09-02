@@ -64,13 +64,29 @@ export type UbicacionInput =
   | { tipo: 'PANOL'; nombre: string }
 
 export interface Droga extends NamedEntity {
+  grupoId: number
+}
+export type DrogaInput = Pick<Droga, 'name' | 'grupoId'>
+
+export interface Medicamento extends EntityTimestamps {
+  id: number
+  name: string
+  drogaId: number
   cantidad: number
   fechaVencimiento: string
-  grupoId: number
   marcaId: number
   presentacionId: number
   ubicacionId: number
 }
-export type DrogaInput = Pick<Droga, 'name' | 'cantidad' | 'fechaVencimiento' | 'grupoId' | 'marcaId' | 'presentacionId' | 'ubicacionId'>
+export type MedicamentoInput = Pick<Medicamento, 'name' | 'drogaId' | 'cantidad' | 'fechaVencimiento' | 'marcaId' | 'presentacionId' | 'ubicacionId'>
 
-export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: { code: string; message: string } }
+export type ApiResult<T> =
+  | { ok: true; data: T }
+  | {
+      ok: false
+      error: {
+        code: string
+        message: string
+        details?: Record<string, string>
+      }
+    }
