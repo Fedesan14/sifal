@@ -1,4 +1,4 @@
-import type { ApiResult, BiomedicalSupply, BiomedicalSupplyInput, Dosis, Droga, DrogaInput, Grupo, Marca, Medicamento, MedicamentoInput, Medication, MedicationInput, NamedEntityInput, Presentacion, PresentacionInput, Ubicacion, UbicacionInput } from './entities'
+import type { ApiResult, BiomedicalSupply, BiomedicalSupplyInput, Dosis, DosisInput, Droga, DrogaInput, Grupo, Marca, Medicamento, MedicamentoInput, Medication, MedicationInput, NamedEntityInput, Presentacion, PresentacionInput, Ubicacion, UbicacionInput } from './entities'
 
 export interface CrudApi<T, TInput> {
   list(): Promise<ApiResult<T[]>>
@@ -13,7 +13,7 @@ export interface DesktopApi {
   biomedicalSupplies: CrudApi<BiomedicalSupply, BiomedicalSupplyInput>
   grupos: CrudApi<Grupo, NamedEntityInput>
   marcas: CrudApi<Marca, NamedEntityInput>
-  dosis: CrudApi<Dosis, NamedEntityInput>
+  dosis: CrudApi<Dosis, DosisInput>
   presentaciones: CrudApi<Presentacion, PresentacionInput>
   ubicaciones: CrudApi<Ubicacion, UbicacionInput>
   drogas: CrudApi<Droga, DrogaInput>

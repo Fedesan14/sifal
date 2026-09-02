@@ -61,14 +61,3 @@ export function MarcasPage() {
     />
   );
 }
-export function DosisPage() {
-  return (
-    <NamedEntitiesPage
-      title="Dosis"
-      newLabel="Nueva dosis"
-      emptyMessage="No hay dosis cargadas."
-      description="Dosis disponibles para las presentaciones."
-      api={window.api.dosis}
-    />
-  );
-}

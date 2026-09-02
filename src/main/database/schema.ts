@@ -39,12 +39,16 @@ function namedTable(name: string) {
 
 export const grupos = namedTable('grupos')
 export const marcas = namedTable('marcas')
-export const dosis = namedTable('dosis')
-
 export const presentaciones = sqliteTable('presentaciones', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
-  dosisId: integer('dosis_id').notNull().references(() => dosis.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
+  ...timestamps
+})
+
+export const dosis = sqliteTable('dosis', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  presentacionId: integer('presentacion_id').notNull().references(() => presentaciones.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
   ...timestamps
 })
 
@@ -67,6 +71,7 @@ export const medicamentos = sqliteTable('medicamentos', {
   fechaVencimiento: text('fecha_vencimiento').notNull(),
   marcaId: integer('marca_id').notNull().references(() => marcas.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
   presentacionId: integer('presentacion_id').notNull().references(() => presentaciones.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
+  dosisId: integer('dosis_id').notNull().references(() => dosis.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
   ...timestamps
 })
 

@@ -39,6 +39,10 @@ export function MedicamentosPage() {
     () => new Map(presentaciones.items.map((item) => [item.id, item.name])),
     [presentaciones.items],
   );
+  const dosisNames = useMemo(
+    () => new Map(dosis.items.map((item) => [item.id, item.name])),
+    [dosis.items],
+  );
   const ubicacionNames = useMemo(
     () => new Map(ubicaciones.items.map((item) => [item.id, item.nombre])),
     [ubicaciones.items],
@@ -64,6 +68,10 @@ export function MedicamentosPage() {
     fechaVencimiento: "",
     marcaId: marcas.items[0]?.id ?? Number.NaN,
     presentacionId: presentaciones.items[0]?.id ?? Number.NaN,
+    dosisId:
+      dosis.items.find(
+        (item) => item.presentacionId === presentaciones.items[0]?.id,
+      )?.id ?? Number.NaN,
     stocks: [],
   };
 
@@ -123,10 +131,38 @@ export function MedicamentosPage() {
             type: "select",
             numeric: true,
             actions: [quickAction("presentacion", "+ Crear presentación")],
+            onChange: (value, raw) => {
+              const presentacionId = Number(raw);
+              return {
+                ...value,
+                presentacionId,
+                dosisId:
+                  dosis.items.find(
+                    (item) => item.presentacionId === presentacionId,
+                  )?.id ?? Number.NaN,
+              };
+            },
             options: presentaciones.items.map((item) => ({
               value: item.id,
               label: item.name,
             })),
+          },
+          {
+            key: "dosisId",
+            label: "Dosis",
+            type: "select",
+            numeric: true,
+            actions: [{
+              label: "+ Crear dosis para esta presentación",
+              onClick: (select, current) => setQuickCreate({
+                kind: "dosis",
+                presentacionId: current.presentacionId,
+                select: (id) => select(id),
+              }),
+            }],
+            options: (current) => dosis.items
+              .filter((item) => item.presentacionId === current.presentacionId)
+              .map((item) => ({ value: item.id, label: item.name })),
           },
           {
             key: "stocks",
@@ -190,12 +226,18 @@ export function MedicamentosPage() {
                 )
                 .join(", "),
           },
+          {
+            key: "dosis",
+            label: "Dosis",
+            render: (item) => dosisNames.get(item.dosisId) ?? `#${item.dosisId}`,
+          },
         ]}
         toInput={(item) => ({
           drogaId: item.drogaId,
           fechaVencimiento: item.fechaVencimiento,
           marcaId: item.marcaId,
           presentacionId: item.presentacionId,
+          dosisId: item.dosisId,
           stocks: item.stocks,
         })}
         itemName={(item) =>

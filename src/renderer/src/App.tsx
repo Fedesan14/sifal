@@ -3,7 +3,8 @@ import { Layout } from "./components/Layout";
 import { BiomedicalSuppliesPage } from "./pages/BiomedicalSuppliesPage";
 import { MedicamentosPage } from "./pages/DrogasPage";
 import { DrogasCatalogPage } from "./pages/DrogasCatalogPage";
-import { DosisPage, GruposPage, MarcasPage } from "./pages/NamedEntitiesPage";
+import { GruposPage, MarcasPage } from "./pages/NamedEntitiesPage";
+import { DosisPage } from "./pages/DosisPage";
 import { PresentacionesPage } from "./pages/PresentacionesPage";
 import { UbicacionesPage } from "./pages/UbicacionesPage";
 export function App() {

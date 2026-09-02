@@ -13,7 +13,7 @@ export interface Field<T> {
   key: string;
   label: string;
   type?: "text" | "number" | "date" | "select" | "display" | "location-stock";
-  options?: { value: string | number; label: string }[];
+  options?: { value: string | number; label: string }[] | ((current: T) => { value: string | number; label: string }[]);
   numeric?: boolean;
   min?: number;
   visible?: (value: T) => boolean;
@@ -21,7 +21,7 @@ export interface Field<T> {
   displayValue?: (value: T) => string;
   actions?: {
     label: string;
-    onClick: (selectValue: (value: string | number) => void) => void;
+    onClick: (selectValue: (value: string | number) => void, current: T) => void;
   }[];
 }
 
@@ -108,6 +108,7 @@ export function EntityForm<T extends object>({
                 typeof rawValue === "number" && Number.isNaN(rawValue)
                   ? ""
                   : String(rawValue ?? "");
+              const options = typeof field.options === "function" ? field.options(value) : field.options;
               const update = (raw: string) => {
                 if (field.onChange) setValue(field.onChange(value, raw));
                 else {
@@ -159,7 +160,7 @@ export function EntityForm<T extends object>({
                               ...current,
                               [field.key]: "",
                             }));
-                          })
+                          }, value)
                         }
                       >
                         {action.label}
@@ -168,7 +169,7 @@ export function EntityForm<T extends object>({
                   </span>
                   {field.type === "location-stock" ? (
                     <div className="location-stock-grid">
-                      {field.options?.map((option) => {
+                      {options?.map((option) => {
                         const stocks = Array.isArray(rawValue)
                           ? (rawValue as {
                               ubicacionId: number;
@@ -214,7 +215,7 @@ export function EntityForm<T extends object>({
                       onChange={(event) => update(event.target.value)}
                     >
                       <option value="">Seleccionar…</option>
-                      {field.options?.map((option) => (
+                      {options?.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>

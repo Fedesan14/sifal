@@ -27,9 +27,9 @@ export const biomedicalSupplyInputSchema = z.object({
 
 export const namedEntityInputSchema = z.object({ name: requiredText }).strict()
 export const presentacionInputSchema = z.object({
-  name: requiredText,
-  dosisId: idSchema
+  name: requiredText
 }).strict()
+export const dosisInputSchema = z.object({ name: requiredText, presentacionId: idSchema }).strict()
 export const ubicacionInputSchema = z.object({ nombre: requiredText }).strict()
 export const drogaInputSchema = z.object({
   name: requiredText,
@@ -40,6 +40,7 @@ export const medicamentoInputSchema = z.object({
   fechaVencimiento: date,
   marcaId: idSchema,
   presentacionId: idSchema,
+  dosisId: idSchema,
   stocks: z.array(z.object({
     ubicacionId: idSchema,
     cantidad: z.number().int().min(0, 'La cantidad no puede ser negativa')
