@@ -1,6 +1,6 @@
 {
   "name": "sifal-stock",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Aplicación desktop offline para control de stock",
   "main": "./out/main/main.js",
   "author": "Sifal",
