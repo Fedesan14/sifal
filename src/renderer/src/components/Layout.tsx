@@ -42,7 +42,7 @@ export function Layout() {
         <div className="brand">Sifal Stock</div>
         <div className="section">Stock</div>
         <NavLink to="/medicamentos">Medicamentos</NavLink>
-        <NavLink to="/biomedical-supplies">Biomédicos</NavLink>
+        {/* <NavLink to="/biomedical-supplies">Biomédicos</NavLink> */}
         <div className="section" style={{ marginTop: 28 }}>
           Catálogos
         </div>
