@@ -55,30 +55,7 @@ const quickDrugSchema = z
 type QuickDrugInput = z.infer<typeof quickDrugSchema>;
 
 const ubicacionFields: Field<UbicacionInput>[] = [
-  {
-    key: "tipo",
-    label: "Tipo",
-    type: "select",
-    options: [
-      { value: "TAQUILLA", label: "Taquilla" },
-      { value: "PANOL", label: "Pañol" },
-    ],
-    onChange: (value, tipo) =>
-      tipo === "PANOL"
-        ? { tipo: "PANOL", nombre: value.nombre }
-        : {
-            tipo: "TAQUILLA",
-            nombre: value.nombre,
-            numero: value.tipo === "TAQUILLA" ? value.numero : Number.NaN,
-          },
-  },
   { key: "nombre", label: "Nombre" },
-  {
-    key: "numero",
-    label: "Número",
-    type: "number",
-    visible: (value) => value.tipo === "TAQUILLA",
-  },
 ];
 
 async function requireCreated<T extends { id: number }>(
@@ -143,7 +120,7 @@ export function QuickCreateRelated({
       <EntityForm<UbicacionInput>
         title="Nueva ubicación"
         fields={ubicacionFields}
-        initial={{ tipo: "TAQUILLA", nombre: "", numero: Number.NaN }}
+        initial={{ nombre: "" }}
         schema={ubicacionInputSchema}
         onClose={onClose}
         onSave={async (input) => {

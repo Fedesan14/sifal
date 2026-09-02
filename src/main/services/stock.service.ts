@@ -66,7 +66,7 @@ export class MedicamentoService {
   list() { return this.repository.list() }
   get(id: number) { const item = this.repository.get(id); if (!item) throw new Error('NOT_FOUND'); return item }
   private assertReferences(input: MedicamentoInput) {
-    if (!this.drogaRepository.get(input.drogaId) || !this.marcaRepository.get(input.marcaId) || !this.presentacionRepository.get(input.presentacionId) || !this.ubicacionRepository.get(input.ubicacionId)) throw new Error('REFERENCE_NOT_FOUND')
+    if (!this.drogaRepository.get(input.drogaId) || !this.marcaRepository.get(input.marcaId) || !this.presentacionRepository.get(input.presentacionId) || input.stocks.some((stock) => !this.ubicacionRepository.get(stock.ubicacionId))) throw new Error('REFERENCE_NOT_FOUND')
   }
   create(input: MedicamentoInput) { this.assertReferences(input); return this.repository.create(input) }
   update(id: number, input: MedicamentoInput) { if (!this.repository.get(id)) throw new Error('NOT_FOUND'); this.assertReferences(input); return this.repository.update(id, input) }

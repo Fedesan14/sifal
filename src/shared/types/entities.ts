@@ -47,21 +47,11 @@ export interface Presentacion extends NamedEntity {
 }
 export type PresentacionInput = Pick<Presentacion, 'name' | 'dosisId'>
 
-interface UbicacionBase extends EntityTimestamps {
+export interface Ubicacion extends EntityTimestamps {
   id: number
   nombre: string
 }
-export interface Taquilla extends UbicacionBase {
-  tipo: 'TAQUILLA'
-  numero: number
-}
-export interface Panol extends UbicacionBase {
-  tipo: 'PANOL'
-}
-export type Ubicacion = Taquilla | Panol
-export type UbicacionInput =
-  | { tipo: 'TAQUILLA'; nombre: string; numero: number }
-  | { tipo: 'PANOL'; nombre: string }
+export type UbicacionInput = Pick<Ubicacion, 'nombre'>
 
 export interface Droga extends NamedEntity {
   grupoId: number
@@ -70,15 +60,18 @@ export type DrogaInput = Pick<Droga, 'name' | 'grupoId'>
 
 export interface Medicamento extends EntityTimestamps {
   id: number
-  name: string
   drogaId: number
   cantidad: number
   fechaVencimiento: string
   marcaId: number
   presentacionId: number
-  ubicacionId: number
+  stocks: MedicamentoStock[]
 }
-export type MedicamentoInput = Pick<Medicamento, 'name' | 'drogaId' | 'cantidad' | 'fechaVencimiento' | 'marcaId' | 'presentacionId' | 'ubicacionId'>
+export interface MedicamentoStock {
+  ubicacionId: number
+  cantidad: number
+}
+export type MedicamentoInput = Pick<Medicamento, 'drogaId' | 'fechaVencimiento' | 'marcaId' | 'presentacionId' | 'stocks'>
 
 export type ApiResult<T> =
   | { ok: true; data: T }

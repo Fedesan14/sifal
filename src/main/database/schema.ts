@@ -1,4 +1,4 @@
-import { check, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { check, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { sql } from 'drizzle-orm'
 
 const timestamps = {
@@ -50,14 +50,9 @@ export const presentaciones = sqliteTable('presentaciones', {
 
 export const ubicaciones = sqliteTable('ubicaciones', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  tipo: text('tipo', { enum: ['TAQUILLA', 'PANOL'] }).notNull(),
   nombre: text('nombre').notNull(),
-  numero: integer('numero'),
   ...timestamps
-}, (table) => [
-  check('ubicaciones_tipo_valido', sql`${table.tipo} IN ('TAQUILLA', 'PANOL')`),
-  check('ubicaciones_atributos_por_tipo', sql`(${table.tipo} = 'TAQUILLA' AND ${table.numero} IS NOT NULL) OR (${table.tipo} = 'PANOL' AND ${table.numero} IS NULL)`)
-])
+})
 
 export const drogas = sqliteTable('drogas', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -68,12 +63,18 @@ export const drogas = sqliteTable('drogas', {
 
 export const medicamentos = sqliteTable('medicamentos', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  name: text('name').notNull(),
   drogaId: integer('droga_id').notNull().references(() => drogas.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
-  cantidad: integer('cantidad').notNull(),
   fechaVencimiento: text('fecha_vencimiento').notNull(),
   marcaId: integer('marca_id').notNull().references(() => marcas.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
   presentacionId: integer('presentacion_id').notNull().references(() => presentaciones.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
-  ubicacionId: integer('ubicacion_id').notNull().references(() => ubicaciones.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
   ...timestamps
-}, (table) => [check('medicamentos_cantidad_nonnegative', sql`${table.cantidad} >= 0`)])
+})
+
+export const medicamentosStock = sqliteTable('medicamentos_stock', {
+  medicamentoId: integer('medicamento_id').notNull().references(() => medicamentos.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+  ubicacionId: integer('ubicacion_id').notNull().references(() => ubicaciones.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
+  cantidad: integer('cantidad').notNull()
+}, (table) => [
+  primaryKey({ columns: [table.medicamentoId, table.ubicacionId] }),
+  check('medicamentos_stock_cantidad_nonnegative', sql`${table.cantidad} >= 0`)
+])

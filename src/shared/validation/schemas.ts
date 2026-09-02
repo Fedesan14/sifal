@@ -30,20 +30,19 @@ export const presentacionInputSchema = z.object({
   name: requiredText,
   dosisId: idSchema
 }).strict()
-export const ubicacionInputSchema = z.discriminatedUnion('tipo', [
-  z.object({ tipo: z.literal('TAQUILLA'), nombre: requiredText, numero: z.number().int() }).strict(),
-  z.object({ tipo: z.literal('PANOL'), nombre: requiredText }).strict()
-])
+export const ubicacionInputSchema = z.object({ nombre: requiredText }).strict()
 export const drogaInputSchema = z.object({
   name: requiredText,
   grupoId: idSchema
 }).strict()
 export const medicamentoInputSchema = z.object({
-  name: requiredText,
   drogaId: idSchema,
-  cantidad: z.number().int().min(0, 'La cantidad no puede ser negativa'),
   fechaVencimiento: date,
   marcaId: idSchema,
   presentacionId: idSchema,
-  ubicacionId: idSchema
+  stocks: z.array(z.object({
+    ubicacionId: idSchema,
+    cantidad: z.number().int().min(0, 'La cantidad no puede ser negativa')
+  }).strict()).min(1, 'Ingresá el stock de al menos una ubicación')
+    .refine((items) => new Set(items.map((item) => item.ubicacionId)).size === items.length, 'No se puede repetir una ubicación')
 }).strict()

@@ -40,15 +40,7 @@ export function MedicamentosPage() {
     [presentaciones.items],
   );
   const ubicacionNames = useMemo(
-    () =>
-      new Map(
-        ubicaciones.items.map((item) => [
-          item.id,
-          item.tipo === "TAQUILLA"
-            ? `${item.nombre} · Taquilla ${item.numero}`
-            : `${item.nombre} · Pañol`,
-        ]),
-      ),
+    () => new Map(ubicaciones.items.map((item) => [item.id, item.nombre])),
     [ubicaciones.items],
   );
   const requiredLists = [drogas, marcas, presentaciones, ubicaciones];
@@ -68,13 +60,11 @@ export function MedicamentosPage() {
       setQuickCreate({ kind, select: (id) => select(id) }),
   });
   const empty: MedicamentoInput = {
-    name: "",
     drogaId: drogas.items[0]?.id ?? Number.NaN,
-    cantidad: 0,
     fechaVencimiento: "",
     marcaId: marcas.items[0]?.id ?? Number.NaN,
     presentacionId: presentaciones.items[0]?.id ?? Number.NaN,
-    ubicacionId: ubicaciones.items[0]?.id ?? Number.NaN,
+    stocks: [],
   };
 
   return (
@@ -89,7 +79,6 @@ export function MedicamentosPage() {
         emptyInput={empty}
         createDisabledMessage={catalogMessage}
         formFields={[
-          { key: "name", label: "Nombre del medicamento" },
           {
             key: "drogaId",
             label: "Droga",
@@ -112,7 +101,6 @@ export function MedicamentosPage() {
                 : "Seleccioná una droga";
             },
           },
-          { key: "cantidad", label: "Cantidad", type: "number", min: 0 },
           {
             key: "fechaVencimiento",
             label: "Fecha de vencimiento",
@@ -141,26 +129,20 @@ export function MedicamentosPage() {
             })),
           },
           {
-            key: "ubicacionId",
-            label: "Ubicación",
-            type: "select",
-            numeric: true,
+            key: "stocks",
+            label: "Stock por ubicación",
+            type: "location-stock",
             actions: [quickAction("ubicacion", "+ Crear ubicación")],
             options: ubicaciones.items.map((item) => ({
               value: item.id,
-              label: ubicacionNames.get(item.id) ?? item.nombre,
+              label: item.nombre,
             })),
           },
         ]}
         tableFields={[
           {
-            key: "name",
-            label: "Medicamento",
-            render: (item) => item.name,
-          },
-          {
             key: "droga",
-            label: "Droga",
+            label: "Medicamento",
             render: (item) =>
               drogaById.get(item.drogaId)?.name ?? `#${item.drogaId}`,
           },
@@ -198,22 +180,27 @@ export function MedicamentosPage() {
               `#${item.presentacionId}`,
           },
           {
-            key: "ubicacion",
-            label: "Ubicación",
+            key: "ubicaciones",
+            label: "Stock por ubicación",
             render: (item) =>
-              ubicacionNames.get(item.ubicacionId) ?? `#${item.ubicacionId}`,
+              item.stocks
+                .map(
+                  (stock) =>
+                    `${ubicacionNames.get(stock.ubicacionId) ?? `#${stock.ubicacionId}`}: ${stock.cantidad}`,
+                )
+                .join(", "),
           },
         ]}
         toInput={(item) => ({
-          name: item.name,
           drogaId: item.drogaId,
-          cantidad: item.cantidad,
           fechaVencimiento: item.fechaVencimiento,
           marcaId: item.marcaId,
           presentacionId: item.presentacionId,
-          ubicacionId: item.ubicacionId,
+          stocks: item.stocks,
         })}
-        itemName={(item) => item.name}
+        itemName={(item) =>
+          drogaById.get(item.drogaId)?.name ?? `#${item.drogaId}`
+        }
       />
       {quickCreate && (
         <QuickCreateRelated

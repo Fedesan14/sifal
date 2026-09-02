@@ -4,17 +4,18 @@ import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import test from 'node:test'
 import { safeHandler } from '../src/main/ipc/handler'
-import { drogaInputSchema, medicamentoInputSchema, namedEntityInputSchema, presentacionInputSchema, ubicacionInputSchema } from '../src/shared/validation/schemas'
+import { medicamentoInputSchema, ubicacionInputSchema } from '../src/shared/validation/schemas'
 
 const timestamp = '2026-01-01T00:00:00.000Z'
 const migrations = path.join(process.cwd(), 'src/main/database/migrations')
+const files = ['0001_normalized_stock.sql', '0002_split_drugs_and_medications.sql', '0003_add_medication_name.sql', '0004_location_stock.sql', '0005_remove_medication_name.sql']
 
-function setup(upTo = '0003_add_medication_name.sql'): DatabaseSync {
+function setup(upTo = files.at(-1)): DatabaseSync {
   const db = new DatabaseSync(':memory:')
   db.exec('PRAGMA foreign_keys = ON')
-  for (const file of ['0001_normalized_stock.sql', '0002_split_drugs_and_medications.sql', '0003_add_medication_name.sql']) {
-    if (file > upTo) break
+  for (const file of files) {
     db.exec(fs.readFileSync(path.join(migrations, file), 'utf8'))
+    if (file === upTo) break
   }
   return db
 }
@@ -23,98 +24,76 @@ function insertNamed(db: DatabaseSync, table: 'grupos' | 'marcas' | 'dosis', nam
   return Number(db.prepare(`INSERT INTO ${table} (name, created_at, updated_at) VALUES (?, ?, ?)`).run(name, timestamp, timestamp).lastInsertRowid)
 }
 
-function seedRelations(db: DatabaseSync) {
+function seedCatalog(db: DatabaseSync) {
   const grupoId = insertNamed(db, 'grupos', 'Antibióticos')
   const marcaId = insertNamed(db, 'marcas', 'Marca A')
   const dosisId = insertNamed(db, 'dosis', '500 mg')
   const drogaId = Number(db.prepare('INSERT INTO drogas (name, grupo_id, created_at, updated_at) VALUES (?, ?, ?, ?)').run('Amoxicilina', grupoId, timestamp, timestamp).lastInsertRowid)
   const presentacionId = Number(db.prepare('INSERT INTO presentaciones (name, dosis_id, created_at, updated_at) VALUES (?, ?, ?, ?)').run('Comprimidos', dosisId, timestamp, timestamp).lastInsertRowid)
-  const ubicacionId = Number(db.prepare('INSERT INTO ubicaciones (tipo, nombre, numero, created_at, updated_at) VALUES (?, ?, ?, ?, ?)').run('TAQUILLA', 'Enfermería', 4, timestamp, timestamp).lastInsertRowid)
-  return { grupoId, marcaId, dosisId, drogaId, presentacionId, ubicacionId }
+  return { marcaId, drogaId, presentacionId }
 }
 
-test('Droga pertenece a Grupo y Medicamento selecciona Droga', () => {
+test('el stock total es la suma del medicamento en todas sus ubicaciones', () => {
   const db = setup()
   try {
-    const ids = seedRelations(db)
-    const medicamentoId = Number(db.prepare('INSERT INTO medicamentos (name, droga_id, cantidad, fecha_vencimiento, marca_id, presentacion_id, ubicacion_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run('Amoxidal 500', ids.drogaId, 20, '2028-06-30', ids.marcaId, ids.presentacionId, ids.ubicacionId, timestamp, timestamp).lastInsertRowid)
-    const row = db.prepare('SELECT m.name, m.cantidad, d.name AS droga, g.name AS grupo FROM medicamentos m JOIN drogas d ON d.id = m.droga_id JOIN grupos g ON g.id = d.grupo_id WHERE m.id = ?').get(medicamentoId)
-    assert.deepEqual({ ...row }, { name: 'Amoxidal 500', cantidad: 20, droga: 'Amoxicilina', grupo: 'Antibióticos' })
-
-    db.prepare('UPDATE drogas SET name = ? WHERE id = ?').run('Amoxicilina actualizada', ids.drogaId)
-    db.prepare('UPDATE medicamentos SET name = ?, cantidad = ? WHERE id = ?').run('Amoxidal Forte', 25, medicamentoId)
-    assert.deepEqual({ ...db.prepare('SELECT name, cantidad FROM medicamentos WHERE id = ?').get(medicamentoId) }, { name: 'Amoxidal Forte', cantidad: 25 })
-    assert.throws(() => db.prepare('DELETE FROM drogas WHERE id = ?').run(ids.drogaId))
-    assert.throws(() => db.prepare('DELETE FROM grupos WHERE id = ?').run(ids.grupoId))
-
-    db.prepare('DELETE FROM medicamentos WHERE id = ?').run(medicamentoId)
-    db.prepare('DELETE FROM drogas WHERE id = ?').run(ids.drogaId)
-    db.prepare('DELETE FROM grupos WHERE id = ?').run(ids.grupoId)
-    db.prepare('DELETE FROM marcas WHERE id = ?').run(ids.marcaId)
-    db.prepare('DELETE FROM ubicaciones WHERE id = ?').run(ids.ubicacionId)
-    db.prepare('DELETE FROM presentaciones WHERE id = ?').run(ids.presentacionId)
-    db.prepare('DELETE FROM dosis WHERE id = ?').run(ids.dosisId)
-  } finally {
-    db.close()
-  }
+    const ids = seedCatalog(db)
+    const location1 = Number(db.prepare('INSERT INTO ubicaciones (nombre, created_at, updated_at) VALUES (?, ?, ?)').run('TAQUILLA 1', timestamp, timestamp).lastInsertRowid)
+    const location2 = Number(db.prepare('INSERT INTO ubicaciones (nombre, created_at, updated_at) VALUES (?, ?, ?)').run('QUIRÓFANO', timestamp, timestamp).lastInsertRowid)
+    const medication = Number(db.prepare('INSERT INTO medicamentos (droga_id, fecha_vencimiento, marca_id, presentacion_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)').run(ids.drogaId, '2028-01-01', ids.marcaId, ids.presentacionId, timestamp, timestamp).lastInsertRowid)
+    db.prepare('INSERT INTO medicamentos_stock VALUES (?, ?, ?)').run(medication, location1, 12)
+    db.prepare('INSERT INTO medicamentos_stock VALUES (?, ?, ?)').run(medication, location2, 8)
+    const result = db.prepare('SELECT SUM(cantidad) AS total FROM medicamentos_stock WHERE medicamento_id = ?').get(medication)
+    assert.equal(result?.total, 20)
+    assert.throws(() => db.prepare('INSERT INTO medicamentos_stock VALUES (?, ?, ?)').run(medication, location1, 1))
+    assert.throws(() => db.prepare('DELETE FROM ubicaciones WHERE id = ?').run(location1))
+    db.prepare('DELETE FROM medicamentos WHERE id = ?').run(medication)
+    assert.equal(db.prepare('SELECT COUNT(*) AS amount FROM medicamentos_stock').get()?.amount, 0)
+  } finally { db.close() }
 })
 
-test('impide referencias rotas y estados inválidos', () => {
-  const db = setup()
+test('0004 conserva el stock y convierte la ubicación a nombre simple', () => {
+  const db = setup('0003_add_medication_name.sql')
   try {
-    const ids = seedRelations(db)
-    assert.throws(() => db.prepare('INSERT INTO drogas (name, grupo_id, created_at, updated_at) VALUES (?, ?, ?, ?)').run('X', 999, timestamp, timestamp))
-    assert.throws(() => db.prepare('INSERT INTO medicamentos (name, droga_id, cantidad, fecha_vencimiento, marca_id, presentacion_id, ubicacion_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run('X', 999, 1, '2028-01-01', ids.marcaId, ids.presentacionId, ids.ubicacionId, timestamp, timestamp))
-    assert.throws(() => db.prepare('INSERT INTO medicamentos (name, droga_id, cantidad, fecha_vencimiento, marca_id, presentacion_id, ubicacion_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run('X', ids.drogaId, -1, '2028-01-01', ids.marcaId, ids.presentacionId, ids.ubicacionId, timestamp, timestamp))
-    assert.throws(() => db.prepare('INSERT INTO medicamentos (name, droga_id, cantidad, fecha_vencimiento, marca_id, presentacion_id, ubicacion_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run('', ids.drogaId, 1, '2028-01-01', ids.marcaId, ids.presentacionId, ids.ubicacionId, timestamp, timestamp))
-    assert.throws(() => db.prepare('INSERT INTO ubicaciones (tipo, nombre, numero, created_at, updated_at) VALUES (?, ?, ?, ?, ?)').run('TAQUILLA', 'Sin número', null, timestamp, timestamp))
-    assert.throws(() => db.prepare('INSERT INTO ubicaciones (tipo, nombre, numero, created_at, updated_at) VALUES (?, ?, ?, ?, ?)').run('PANOL', 'Inválido', 3, timestamp, timestamp))
-  } finally {
-    db.close()
-  }
+    const ids = seedCatalog(db)
+    const location = Number(db.prepare('INSERT INTO ubicaciones (tipo, nombre, numero, created_at, updated_at) VALUES (?, ?, ?, ?, ?)').run('TAQUILLA', 'Enfermería', 4, timestamp, timestamp).lastInsertRowid)
+    db.prepare('INSERT INTO medicamentos (name, droga_id, cantidad, fecha_vencimiento, marca_id, presentacion_id, ubicacion_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run('Amoxidal', ids.drogaId, 17, '2028-01-01', ids.marcaId, ids.presentacionId, location, timestamp, timestamp)
+    db.exec(fs.readFileSync(path.join(migrations, '0004_location_stock.sql'), 'utf8'))
+    assert.equal(db.prepare('SELECT nombre FROM ubicaciones').get()?.nombre, 'Enfermería 4')
+    assert.equal(db.prepare('SELECT cantidad FROM medicamentos_stock').get()?.cantidad, 17)
+    const columns = db.prepare('PRAGMA table_info(medicamentos)').all().map((column) => column.name)
+    assert.equal(columns.includes('cantidad'), false)
+  } finally { db.close() }
 })
 
-test('la migración 0002 conserva el stock creado por 0001', () => {
-  const db = setup('0001_normalized_stock.sql')
-  try {
-    const grupoId = insertNamed(db, 'grupos', 'Analgésicos')
-    const marcaId = insertNamed(db, 'marcas', 'Marca')
-    const dosisId = insertNamed(db, 'dosis', '500 mg')
-    const presentacionId = Number(db.prepare('INSERT INTO presentaciones (name, dosis_id, created_at, updated_at) VALUES (?, ?, ?, ?)').run('Comprimidos', dosisId, timestamp, timestamp).lastInsertRowid)
-    const ubicacionId = Number(db.prepare('INSERT INTO ubicaciones (tipo, nombre, numero, created_at, updated_at) VALUES (?, ?, ?, ?, ?)').run('PANOL', 'Principal', null, timestamp, timestamp).lastInsertRowid)
-    db.prepare('INSERT INTO drogas (name, cantidad, fecha_vencimiento, grupo_id, marca_id, presentacion_id, ubicacion_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run('Ibuprofeno', 12, '2029-01-01', grupoId, marcaId, presentacionId, ubicacionId, timestamp, timestamp)
-    db.exec(fs.readFileSync(path.join(migrations, '0002_split_drugs_and_medications.sql'), 'utf8'))
-    db.exec(fs.readFileSync(path.join(migrations, '0003_add_medication_name.sql'), 'utf8'))
-    assert.equal(db.prepare('SELECT name FROM drogas').get()?.name, 'Ibuprofeno')
-    assert.equal(db.prepare('SELECT cantidad FROM medicamentos').get()?.cantidad, 12)
-    assert.equal(db.prepare('SELECT name FROM medicamentos').get()?.name, 'Ibuprofeno')
-    assert.equal(db.prepare('SELECT cantidad FROM drogas_stock_legacy_0001').get()?.cantidad, 12)
-  } finally {
-    db.close()
-  }
+test('los payloads aceptan varias ubicaciones y rechazan duplicados', () => {
+  const valid = { drogaId: 1, fechaVencimiento: '2028-01-01', marcaId: 1, presentacionId: 1, stocks: [{ ubicacionId: 1, cantidad: 2 }, { ubicacionId: 2, cantidad: 3 }] }
+  assert.equal(medicamentoInputSchema.safeParse(valid).success, true)
+  assert.equal(medicamentoInputSchema.safeParse({ ...valid, stocks: [] }).success, false)
+  assert.equal(medicamentoInputSchema.safeParse({ ...valid, stocks: [{ ubicacionId: 1, cantidad: 2 }, { ubicacionId: 1, cantidad: 3 }] }).success, false)
+  assert.equal(ubicacionInputSchema.safeParse({ nombre: 'PAÑOL FARMACIA' }).success, true)
+  assert.equal(ubicacionInputSchema.safeParse({ tipo: 'PANOL', nombre: 'Farmacia' }).success, false)
 })
 
-test('Zod valida los nuevos payloads', () => {
-  assert.equal(namedEntityInputSchema.safeParse({ name: '' }).success, false)
-  assert.equal(drogaInputSchema.safeParse({ name: 'Amoxicilina', grupoId: 1 }).success, true)
-  assert.equal(drogaInputSchema.safeParse({ name: 'Amoxicilina', grupoId: 0 }).success, false)
-  assert.equal(medicamentoInputSchema.safeParse({ name: 'Amoxidal', drogaId: 1, cantidad: 2, fechaVencimiento: '2028-01-01', marcaId: 1, presentacionId: 1, ubicacionId: 1 }).success, true)
-  assert.equal(medicamentoInputSchema.safeParse({ name: '', drogaId: 1, cantidad: 2, fechaVencimiento: '2028-01-01', marcaId: 1, presentacionId: 1, ubicacionId: 1 }).success, false)
-  assert.equal(medicamentoInputSchema.safeParse({ name: 'Amoxidal', drogaId: 1, cantidad: -1, fechaVencimiento: '2028-01-01', marcaId: 1, presentacionId: 1, ubicacionId: 1 }).success, false)
-  assert.equal(presentacionInputSchema.safeParse({ name: 'Ampolla', dosisId: 0 }).success, false)
-  assert.equal(ubicacionInputSchema.safeParse({ tipo: 'PANOL', nombre: 'A', numero: 3 }).success, false)
-})
-
-test('IPC devuelve el detalle del campo inválido', async () => {
-  const result = await safeHandler(() => medicamentoInputSchema.parse({
-    name: '', drogaId: 0, cantidad: -1, fechaVencimiento: 'fecha-inválida',
-    marcaId: 1, presentacionId: 1, ubicacionId: 1
-  }))
+test('IPC devuelve el detalle del stock inválido', async () => {
+  const result = await safeHandler(() => medicamentoInputSchema.parse({ drogaId: 0, fechaVencimiento: 'inválida', marcaId: 1, presentacionId: 1, stocks: [] }))
   assert.equal(result.ok, false)
   if (!result.ok) {
     assert.equal(result.error.code, 'VALIDATION_ERROR')
-    assert.equal(result.error.details?.name, 'Este campo es obligatorio')
-    assert.match(result.error.details?.cantidad ?? '', /negativa/)
-    assert.match(result.error.message, /name/)
+    assert.ok(result.error.details?.drogaId)
+    assert.ok(result.error.details?.stocks)
   }
+})
+
+test('0005 elimina el nombre del medicamento y conserva su stock', () => {
+  const db = setup('0004_location_stock.sql')
+  try {
+    const ids = seedCatalog(db)
+    const location = Number(db.prepare('INSERT INTO ubicaciones (nombre, created_at, updated_at) VALUES (?, ?, ?)').run('FARMACIA', timestamp, timestamp).lastInsertRowid)
+    const medication = Number(db.prepare('INSERT INTO medicamentos (name, droga_id, fecha_vencimiento, marca_id, presentacion_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run('Nombre anterior', ids.drogaId, '2028-01-01', ids.marcaId, ids.presentacionId, timestamp, timestamp).lastInsertRowid)
+    db.prepare('INSERT INTO medicamentos_stock VALUES (?, ?, ?)').run(medication, location, 9)
+    db.exec(fs.readFileSync(path.join(migrations, '0005_remove_medication_name.sql'), 'utf8'))
+    const columns = db.prepare('PRAGMA table_info(medicamentos)').all().map((column) => column.name)
+    assert.equal(columns.includes('name'), false)
+    assert.equal(db.prepare('SELECT cantidad FROM medicamentos_stock').get()?.cantidad, 9)
+  } finally { db.close() }
 })

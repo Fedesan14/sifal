@@ -12,7 +12,7 @@ import {
 export interface Field<T> {
   key: string;
   label: string;
-  type?: "text" | "number" | "date" | "select" | "display";
+  type?: "text" | "number" | "date" | "select" | "display" | "location-stock";
   options?: { value: string | number; label: string }[];
   numeric?: boolean;
   min?: number;
@@ -133,10 +133,28 @@ export function EntityForm<T extends object>({
                         type="button"
                         onClick={() =>
                           action.onClick((next) => {
-                            setValue((current) => ({
-                              ...current,
-                              [field.key]: next,
-                            }));
+                            setValue((current) => {
+                              if (field.type === "location-stock") {
+                                const record = current as Record<string, unknown>;
+                                const stocks = Array.isArray(record[field.key])
+                                  ? (record[field.key] as {
+                                      ubicacionId: number;
+                                      cantidad: number;
+                                    }[])
+                                  : [];
+                                const ubicacionId = Number(next);
+                                return {
+                                  ...current,
+                                  [field.key]: stocks.some(
+                                    (stock) =>
+                                      stock.ubicacionId === ubicacionId,
+                                  )
+                                    ? stocks
+                                    : [...stocks, { ubicacionId, cantidad: 0 }],
+                                };
+                              }
+                              return { ...current, [field.key]: next };
+                            });
                             setErrors((current) => ({
                               ...current,
                               [field.key]: "",
@@ -148,7 +166,44 @@ export function EntityForm<T extends object>({
                       </button>
                     ))}
                   </span>
-                  {field.type === "display" ? (
+                  {field.type === "location-stock" ? (
+                    <div className="location-stock-grid">
+                      {field.options?.map((option) => {
+                        const stocks = Array.isArray(rawValue)
+                          ? (rawValue as {
+                              ubicacionId: number;
+                              cantidad: number;
+                            }[])
+                          : [];
+                        const current = stocks.find(
+                          (stock) => stock.ubicacionId === Number(option.value),
+                        );
+                        return (
+                          <label key={option.value}>
+                            <span>{option.label}</span>
+                            <input
+                              type="number"
+                              min={0}
+                              value={current?.cantidad ?? ""}
+                              onChange={(event) => {
+                                const ubicacionId = Number(option.value);
+                                const next = stocks.filter(
+                                  (stock) => stock.ubicacionId !== ubicacionId,
+                                );
+                                if (event.target.value !== "")
+                                  next.push({
+                                    ubicacionId,
+                                    cantidad: Number(event.target.value),
+                                  });
+                                setValue({ ...value, [field.key]: next });
+                                setErrors({ ...errors, [field.key]: "" });
+                              }}
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ) : field.type === "display" ? (
                     <output className="field-display">
                       {field.displayValue?.(value) || "—"}
                     </output>
