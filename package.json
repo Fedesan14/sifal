@@ -13,6 +13,7 @@
     "format:check": "prettier --check \"src/renderer/**/*.{ts,tsx,html}\"",
     "build": "npm run typecheck && npm run lint && electron-vite build",
     "test": "tsx --test tests/stock.test.ts",
+    "demo:seed": "tsx scripts/seed-demo.ts",
     "dist:win": "npm run build && electron-builder --win",
     "db:generate": "drizzle-kit generate",
     "postinstall": "electron-builder install-app-deps"
