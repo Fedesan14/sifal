@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 const requiredText = z.string().trim().min(1, 'Este campo es obligatorio')
-const expirationMonth = z.string().regex(/^\d{2}\/\d{4}$/, 'El vencimiento debe tener formato MM/AAAA').refine((value) => {
+const expirationMonth = z.string().regex(/^\d{2}\/\d{4}$/, 'El vencimiento debe tener formato MM/YYYY').refine((value) => {
   const [month, year] = value.split('/').map(Number)
   return year >= 1000 && month >= 1 && month <= 12
 }, 'El mes de vencimiento no es válido')

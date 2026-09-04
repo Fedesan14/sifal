@@ -25,7 +25,7 @@ export function BiomedicalSuppliesPage() {
       createDisabledMessage={ubicaciones.error || undefined}
       formFields={[
         { key: "name", label: "Nombre" },
-        { key: "expirationDate", label: "Mes de vencimiento (MM/AAAA)", placeholder: "01/2027", formatInput: formatExpirationMonthInput },
+        { key: "expirationDate", label: "Mes de vencimiento (MM/YYYY)", placeholder: "MM/YYYY", formatInput: formatExpirationMonthInput },
         {
           key: "stocks", label: "Stock por ubicación (opcional)", type: "location-stock",
           options: ubicaciones.items.map((item) => ({ value: item.id, label: item.nombre })),

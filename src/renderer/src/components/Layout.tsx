@@ -40,6 +40,7 @@ export function Layout() {
     <Shell>
       <Aside>
         <div className="brand">Sifal</div>
+        <NavLink to="/" end>Inicio</NavLink>
         <div className="section">Stock</div>
         <NavLink to="/medicamentos">Medicamentos</NavLink>
         <NavLink to="/biomedical-supplies">Biomédicos</NavLink>

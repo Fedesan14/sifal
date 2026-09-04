@@ -7,10 +7,12 @@ import { GruposPage, MarcasPage } from "./pages/NamedEntitiesPage";
 import { DosisPage } from "./pages/DosisPage";
 import { PresentacionesPage } from "./pages/PresentacionesPage";
 import { UbicacionesPage } from "./pages/UbicacionesPage";
+import { HomePage } from "./pages/HomePage";
 export function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
+        <Route path="/" element={<HomePage />} />
         <Route path="/medicamentos" element={<MedicamentosPage />} />
         <Route
           path="/biomedical-supplies"
@@ -22,7 +24,7 @@ export function App() {
         <Route path="/dosis" element={<DosisPage />} />
         <Route path="/presentaciones" element={<PresentacionesPage />} />
         <Route path="/ubicaciones" element={<UbicacionesPage />} />
-        <Route path="*" element={<Navigate to="/medicamentos" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
   );

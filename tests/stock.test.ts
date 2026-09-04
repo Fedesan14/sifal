@@ -19,6 +19,12 @@ test('el vencimiento agrega la barra automáticamente y permite corregirlo', () 
   assert.equal(formatExpirationMonthInput('02', '02/'), '02')
 })
 
+test('el vencimiento informa el formato MM/YYYY', () => {
+  const result = biomedicalSupplyInputSchema.safeParse({ name: 'Catéter', expirationDate: '2027-02', stocks: [] })
+  assert.equal(result.success, false)
+  if (!result.success) assert.equal(result.error.issues[0]?.message, 'El vencimiento debe tener formato MM/YYYY')
+})
+
 function setup(upTo = files.at(-1)): DatabaseSync {
   const db = new DatabaseSync(':memory:')
   db.exec('PRAGMA foreign_keys = ON')

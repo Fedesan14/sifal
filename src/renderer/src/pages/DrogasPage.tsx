@@ -112,9 +112,9 @@ export function MedicamentosPage() {
           },
           {
             key: "fechaVencimiento",
-            label: "Mes de vencimiento (MM/AAAA)",
+            label: "Mes de vencimiento (MM/YYYY)",
             type: "text",
-            placeholder: "01/2027",
+            placeholder: "MM/YYYY",
             formatInput: formatExpirationMonthInput,
           },
           {
