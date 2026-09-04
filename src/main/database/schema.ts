@@ -23,11 +23,9 @@ export const medications = sqliteTable('medications', {
 export const biomedicalSupplies = sqliteTable('biomedical_supplies', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
-  quantity: integer('quantity').notNull(),
   expirationDate: text('expiration_date').notNull(),
-  location: text('location').notNull(),
   ...timestamps
-}, (table) => [check('biomedical_supplies_quantity_nonnegative', sql`${table.quantity} >= 0`)])
+})
 
 function namedTable(name: string) {
   return sqliteTable(name, {
@@ -82,4 +80,13 @@ export const medicamentosStock = sqliteTable('medicamentos_stock', {
 }, (table) => [
   primaryKey({ columns: [table.medicamentoId, table.ubicacionId] }),
   check('medicamentos_stock_cantidad_nonnegative', sql`${table.cantidad} >= 0`)
+])
+
+export const biomedicalSuppliesStock = sqliteTable('biomedical_supplies_stock', {
+  biomedicalSupplyId: integer('biomedical_supply_id').notNull().references(() => biomedicalSupplies.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+  ubicacionId: integer('ubicacion_id').notNull().references(() => ubicaciones.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
+  cantidad: integer('cantidad').notNull()
+}, (table) => [
+  primaryKey({ columns: [table.biomedicalSupplyId, table.ubicacionId] }),
+  check('biomedical_supplies_stock_cantidad_nonnegative', sql`${table.cantidad} >= 0`)
 ])

@@ -1,109 +1,46 @@
-import { useState } from "react";
-import type {
-  BiomedicalSupply,
-  BiomedicalSupplyInput,
-} from "../../../shared/types/entities";
+import { useMemo } from "react";
+import type { BiomedicalSupply, BiomedicalSupplyInput } from "../../../shared/types/entities";
 import { biomedicalSupplyInputSchema } from "../../../shared/validation/schemas";
-import { EntityForm, type Field } from "../components/EntityForm";
-import {
-  Button,
-  Card,
-  Center,
-  Header,
-  Message,
-  Page,
-  Table,
-} from "../components/ui";
-import { useCrud } from "../hooks/useCrud";
-const empty: BiomedicalSupplyInput = {
-  name: "",
-  quantity: 0,
-  expirationDate: "",
-  location: "",
-};
-const fields: Field<BiomedicalSupplyInput>[] = [
-  { key: "name", label: "Biomédico" },
-  { key: "quantity", label: "Cantidad", type: "number" },
-  { key: "expirationDate", label: "Fecha de vencimiento", type: "date" },
-  { key: "location", label: "Ubicación" },
-];
+import { CrudPage } from "../components/CrudPage";
+import { useReferenceList } from "../hooks/useReferenceList";
+
 export function BiomedicalSuppliesPage() {
-  const api = window.api.biomedicalSupplies;
-  const crud = useCrud<BiomedicalSupply, BiomedicalSupplyInput>(api);
-  const [editing, setEditing] = useState<BiomedicalSupply | true | null>(null);
-  async function remove(item: BiomedicalSupply) {
-    if (confirm(`¿Eliminar ${item.name}?`)) await crud.remove(item.id);
-  }
+  const ubicaciones = useReferenceList(window.api.ubicaciones);
+  const ubicacionNames = useMemo(
+    () => new Map(ubicaciones.items.map((item) => [item.id, item.nombre])),
+    [ubicaciones.items],
+  );
+  const empty: BiomedicalSupplyInput = { name: "", expirationDate: "", stocks: [] };
+
   return (
-    <Page>
-      <Header>
-        <div>
-          <h1>Biomédicos</h1>
-          <p>Administración del stock de insumos biomédicos.</p>
-        </div>
-        <Button onClick={() => setEditing(true)}>Nuevo biomédico</Button>
-      </Header>
-      {crud.error && <Message $error>{crud.error}</Message>}
-      {crud.notice && <Message>{crud.notice}</Message>}
-      <Card>
-        {crud.loading ? (
-          <Center>Cargando…</Center>
-        ) : !crud.items.length ? (
-          <Center>No hay insumos biomédicos cargados.</Center>
-        ) : (
-          <Table>
-            <thead>
-              <tr>
-                {fields.map((f) => (
-                  <th key={String(f.key)}>{f.label}</th>
-                ))}
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {crud.items.map((item) => (
-                <tr key={item.id}>
-                  {fields.map((f) => (
-                    <td key={String(f.key)}>
-                      {String(item[f.key as keyof BiomedicalSupply])}
-                    </td>
-                  ))}
-                  <td className="actions">
-                    <Button $secondary onClick={() => setEditing(item)}>
-                      Editar
-                    </Button>
-                    <Button $danger onClick={() => void remove(item)}>
-                      Eliminar
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        )}
-      </Card>
-      {editing && (
-        <EntityForm
-          title={editing === true ? "Nuevo biomédico" : "Editar biomédico"}
-          fields={fields}
-          initial={
-            editing === true
-              ? empty
-              : (Object.fromEntries(
-                  Object.keys(empty).map((k) => [
-                    k,
-                    editing[k as keyof BiomedicalSupply],
-                  ]),
-                ) as unknown as BiomedicalSupplyInput)
-          }
-          schema={biomedicalSupplyInputSchema}
-          onClose={() => setEditing(null)}
-          onSave={async (v) => {
-            await crud.save(editing === true ? undefined : editing.id, v);
-            setEditing(null);
-          }}
-        />
-      )}
-    </Page>
+    <CrudPage<BiomedicalSupply, BiomedicalSupplyInput>
+      title="Biomédicos"
+      description="Administración del stock de insumos biomédicos por ubicación."
+      newLabel="Nuevo biomédico"
+      emptyMessage="No hay insumos biomédicos cargados."
+      api={window.api.biomedicalSupplies}
+      schema={biomedicalSupplyInputSchema}
+      emptyInput={empty}
+      createDisabledMessage={ubicaciones.error || undefined}
+      formFields={[
+        { key: "name", label: "Nombre" },
+        { key: "expirationDate", label: "Fecha de vencimiento", type: "date" },
+        {
+          key: "stocks", label: "Stock por ubicación (opcional)", type: "location-stock",
+          options: ubicaciones.items.map((item) => ({ value: item.id, label: item.nombre })),
+        },
+      ]}
+      tableFields={[
+        { key: "name", label: "Biomédico", render: (item) => item.name },
+        { key: "quantity", label: "Cantidad", render: (item) => item.quantity },
+        { key: "expirationDate", label: "Vencimiento", render: (item) => item.expirationDate },
+        {
+          key: "locations", label: "Stock por ubicación",
+          render: (item) => item.stocks.map((stock) => `${ubicacionNames.get(stock.ubicacionId) ?? `#${stock.ubicacionId}`}: ${stock.cantidad}`).join(", ") || "Sin stock asignado",
+        },
+      ]}
+      toInput={(item) => ({ name: item.name, expirationDate: item.expirationDate, stocks: item.stocks })}
+      itemName={(item) => item.name}
+    />
   );
 }

@@ -20,12 +20,17 @@ export interface BiomedicalSupply {
   name: string
   quantity: number
   expirationDate: string
-  location: string
+  stocks: BiomedicalSupplyStock[]
   createdAt: string
   updatedAt: string
 }
 
-export type BiomedicalSupplyInput = Omit<BiomedicalSupply, 'id' | 'createdAt' | 'updatedAt'>
+export interface BiomedicalSupplyStock {
+  ubicacionId: number
+  cantidad: number
+}
+
+export type BiomedicalSupplyInput = Pick<BiomedicalSupply, 'name' | 'expirationDate' | 'stocks'>
 
 interface EntityTimestamps {
   createdAt: string

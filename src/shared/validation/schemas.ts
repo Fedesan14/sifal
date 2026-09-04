@@ -20,9 +20,12 @@ export const medicationInputSchema = z.object({
 }).strict()
 export const biomedicalSupplyInputSchema = z.object({
   name: requiredText,
-  quantity: z.number().int().min(0, 'La cantidad no puede ser negativa'),
   expirationDate: date,
-  location: requiredText
+  stocks: z.array(z.object({
+    ubicacionId: idSchema,
+    cantidad: z.number().int().min(0, 'La cantidad no puede ser negativa')
+  }).strict())
+    .refine((items) => new Set(items.map((item) => item.ubicacionId)).size === items.length, 'No se puede repetir una ubicación')
 }).strict()
 
 export const namedEntityInputSchema = z.object({ name: requiredText }).strict()

@@ -4,11 +4,11 @@ import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import test from 'node:test'
 import { safeHandler } from '../src/main/ipc/handler'
-import { medicamentoInputSchema, ubicacionInputSchema } from '../src/shared/validation/schemas'
+import { biomedicalSupplyInputSchema, medicamentoInputSchema, ubicacionInputSchema } from '../src/shared/validation/schemas'
 
 const timestamp = '2026-01-01T00:00:00.000Z'
 const migrations = path.join(process.cwd(), 'src/main/database/migrations')
-const files = ['0001_normalized_stock.sql', '0002_split_drugs_and_medications.sql', '0003_add_medication_name.sql', '0004_location_stock.sql', '0005_remove_medication_name.sql', '0006_dose_by_presentation.sql']
+const files = ['0001_normalized_stock.sql', '0002_split_drugs_and_medications.sql', '0003_add_medication_name.sql', '0004_location_stock.sql', '0005_remove_medication_name.sql', '0006_dose_by_presentation.sql', '0007_biomedical_location_stock.sql']
 
 function setup(upTo = files.at(-1)): DatabaseSync {
   const db = new DatabaseSync(':memory:')
@@ -81,6 +81,39 @@ test('los payloads permiten omitir el stock y rechazan ubicaciones duplicadas', 
   assert.equal(medicamentoInputSchema.safeParse({ ...valid, stocks: [{ ubicacionId: 1, cantidad: 2 }, { ubicacionId: 1, cantidad: 3 }] }).success, false)
   assert.equal(ubicacionInputSchema.safeParse({ nombre: 'PAÑOL FARMACIA' }).success, true)
   assert.equal(ubicacionInputSchema.safeParse({ tipo: 'PANOL', nombre: 'Farmacia' }).success, false)
+  const biomedical = { name: 'Catéter', expirationDate: '2028-01-01', stocks: [{ ubicacionId: 1, cantidad: 4 }] }
+  assert.equal(biomedicalSupplyInputSchema.safeParse(biomedical).success, true)
+  assert.equal(biomedicalSupplyInputSchema.safeParse({ ...biomedical, stocks: [{ ubicacionId: 1, cantidad: 4 }, { ubicacionId: 1, cantidad: 2 }] }).success, false)
+})
+
+test('el stock biomédico se distribuye entre las ubicaciones compartidas', () => {
+  const db = setup()
+  try {
+    const location1 = Number(db.prepare('INSERT INTO ubicaciones (nombre, created_at, updated_at) VALUES (?, ?, ?)').run('FARMACIA', timestamp, timestamp).lastInsertRowid)
+    const location2 = Number(db.prepare('INSERT INTO ubicaciones (nombre, created_at, updated_at) VALUES (?, ?, ?)').run('QUIRÓFANO', timestamp, timestamp).lastInsertRowid)
+    const supply = Number(db.prepare('INSERT INTO biomedical_supplies (name, expiration_date, created_at, updated_at) VALUES (?, ?, ?, ?)').run('Catéter', '2028-01-01', timestamp, timestamp).lastInsertRowid)
+    db.prepare('INSERT INTO biomedical_supplies_stock VALUES (?, ?, ?)').run(supply, location1, 3)
+    db.prepare('INSERT INTO biomedical_supplies_stock VALUES (?, ?, ?)').run(supply, location2, 5)
+    assert.equal(db.prepare('SELECT SUM(cantidad) AS total FROM biomedical_supplies_stock WHERE biomedical_supply_id = ?').get(supply)?.total, 8)
+    assert.throws(() => db.prepare('INSERT INTO biomedical_supplies_stock VALUES (?, ?, ?)').run(supply, location1, 1))
+    assert.throws(() => db.prepare('DELETE FROM ubicaciones WHERE id = ?').run(location1))
+    db.prepare('DELETE FROM biomedical_supplies WHERE id = ?').run(supply)
+    assert.equal(db.prepare('SELECT COUNT(*) AS amount FROM biomedical_supplies_stock').get()?.amount, 0)
+  } finally { db.close() }
+})
+
+test('0007 conserva los biomédicos del modelo anterior', () => {
+  const db = setup('0006_dose_by_presentation.sql')
+  try {
+    db.exec('CREATE TABLE biomedical_supplies (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, quantity INTEGER NOT NULL, expiration_date TEXT NOT NULL, location TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)')
+    db.prepare('INSERT INTO biomedical_supplies (name, quantity, expiration_date, location, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)').run('Catéter', 6, '2028-01-01', 'QUIRÓFANO', timestamp, timestamp)
+    db.exec(fs.readFileSync(path.join(migrations, '0007_biomedical_location_stock.sql'), 'utf8'))
+    assert.equal(db.prepare('SELECT name FROM biomedical_supplies').get()?.name, 'Catéter')
+    assert.deepEqual({ ...db.prepare('SELECT location.nombre, stock.cantidad FROM biomedical_supplies_stock stock JOIN ubicaciones location ON location.id = stock.ubicacion_id').get() }, { nombre: 'QUIRÓFANO', cantidad: 6 })
+    const columns = db.prepare('PRAGMA table_info(biomedical_supplies)').all().map((column) => column.name)
+    assert.equal(columns.includes('quantity'), false)
+    assert.equal(columns.includes('location'), false)
+  } finally { db.close() }
 })
 
 test('IPC devuelve el detalle de los campos inválidos', async () => {

@@ -1,7 +1,7 @@
 import { desc, eq } from 'drizzle-orm'
 import type { DosisInput, DrogaInput, MedicamentoInput, NamedEntityInput, PresentacionInput, UbicacionInput } from '../../shared/types/entities'
 import { getDatabase, type StockDatabase } from '../database/connection'
-import { dosis, drogas, grupos, marcas, medicamentos, medicamentosStock, presentaciones, ubicaciones } from '../database/schema'
+import { biomedicalSuppliesStock, dosis, drogas, grupos, marcas, medicamentos, medicamentosStock, presentaciones, ubicaciones } from '../database/schema'
 
 const now = () => new Date().toISOString()
 
@@ -52,7 +52,7 @@ export class UbicacionRepository {
   create(input: UbicacionInput) { const timestamp = now(); return this.db.insert(ubicaciones).values({ ...input, createdAt: timestamp, updatedAt: timestamp }).returning().get() }
   update(id: number, input: UbicacionInput) { return this.db.update(ubicaciones).set({ ...input, updatedAt: now() }).where(eq(ubicaciones.id, id)).returning().get() }
   delete(id: number) { return this.db.delete(ubicaciones).where(eq(ubicaciones.id, id)).returning().get() }
-  isUsed(id: number) { return Boolean(this.db.select({ id: medicamentosStock.medicamentoId }).from(medicamentosStock).where(eq(medicamentosStock.ubicacionId, id)).get()) }
+  isUsed(id: number) { return Boolean(this.db.select({ id: medicamentosStock.medicamentoId }).from(medicamentosStock).where(eq(medicamentosStock.ubicacionId, id)).get() || this.db.select({ id: biomedicalSuppliesStock.biomedicalSupplyId }).from(biomedicalSuppliesStock).where(eq(biomedicalSuppliesStock.ubicacionId, id)).get()) }
 }
 
 export class DrogaRepository {
