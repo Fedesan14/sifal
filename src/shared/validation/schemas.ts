@@ -1,10 +1,10 @@
 import { z } from 'zod'
 
 const requiredText = z.string().trim().min(1, 'Este campo es obligatorio')
-const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha debe tener formato AAAA-MM-DD').refine((value) => {
-  const parsed = new Date(`${value}T00:00:00Z`)
-  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
-}, 'La fecha no es válida')
+const expirationMonth = z.string().regex(/^\d{2}\/\d{4}$/, 'El vencimiento debe tener formato MM/AAAA').refine((value) => {
+  const [month, year] = value.split('/').map(Number)
+  return year >= 1000 && month >= 1 && month <= 12
+}, 'El mes de vencimiento no es válido')
 
 export const idSchema = z.number().int().positive('El ID debe ser un entero positivo')
 export const medicationInputSchema = z.object({
@@ -14,13 +14,13 @@ export const medicationInputSchema = z.object({
   presentation: requiredText,
   commercialBrand: requiredText,
   quantity: z.number().int().min(0, 'La cantidad no puede ser negativa'),
-  expirationDate: date,
+  expirationDate: expirationMonth,
   acquisition: requiredText,
   location: requiredText
 }).strict()
 export const biomedicalSupplyInputSchema = z.object({
   name: requiredText,
-  expirationDate: date,
+  expirationDate: expirationMonth,
   stocks: z.array(z.object({
     ubicacionId: idSchema,
     cantidad: z.number().int().min(0, 'La cantidad no puede ser negativa')
@@ -40,7 +40,7 @@ export const drogaInputSchema = z.object({
 }).strict()
 export const medicamentoInputSchema = z.object({
   drogaId: idSchema,
-  fechaVencimiento: date,
+  fechaVencimiento: expirationMonth,
   marcaId: idSchema,
   presentacionId: idSchema,
   dosisId: idSchema,

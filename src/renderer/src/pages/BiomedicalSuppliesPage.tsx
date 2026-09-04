@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { BiomedicalSupply, BiomedicalSupplyInput } from "../../../shared/types/entities";
 import { biomedicalSupplyInputSchema } from "../../../shared/validation/schemas";
+import { formatExpirationMonthInput } from "../../../shared/formatters";
 import { CrudPage } from "../components/CrudPage";
 import { useReferenceList } from "../hooks/useReferenceList";
 
@@ -24,7 +25,7 @@ export function BiomedicalSuppliesPage() {
       createDisabledMessage={ubicaciones.error || undefined}
       formFields={[
         { key: "name", label: "Nombre" },
-        { key: "expirationDate", label: "Fecha de vencimiento", type: "date" },
+        { key: "expirationDate", label: "Mes de vencimiento (MM/AAAA)", placeholder: "01/2027", formatInput: formatExpirationMonthInput },
         {
           key: "stocks", label: "Stock por ubicación (opcional)", type: "location-stock",
           options: ubicaciones.items.map((item) => ({ value: item.id, label: item.nombre })),

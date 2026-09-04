@@ -4,11 +4,20 @@ import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import test from 'node:test'
 import { safeHandler } from '../src/main/ipc/handler'
+import { formatExpirationMonthInput } from '../src/shared/formatters'
 import { biomedicalSupplyInputSchema, medicamentoInputSchema, ubicacionInputSchema } from '../src/shared/validation/schemas'
 
 const timestamp = '2026-01-01T00:00:00.000Z'
 const migrations = path.join(process.cwd(), 'src/main/database/migrations')
-const files = ['0001_normalized_stock.sql', '0002_split_drugs_and_medications.sql', '0003_add_medication_name.sql', '0004_location_stock.sql', '0005_remove_medication_name.sql', '0006_dose_by_presentation.sql', '0007_biomedical_location_stock.sql']
+const files = ['0001_normalized_stock.sql', '0002_split_drugs_and_medications.sql', '0003_add_medication_name.sql', '0004_location_stock.sql', '0005_remove_medication_name.sql', '0006_dose_by_presentation.sql', '0007_biomedical_location_stock.sql', '0008_expiration_month.sql', '0009_expiration_month_display.sql']
+
+test('el vencimiento agrega la barra automáticamente y permite corregirlo', () => {
+  assert.equal(formatExpirationMonthInput('0', ''), '0')
+  assert.equal(formatExpirationMonthInput('02', '0'), '02/')
+  assert.equal(formatExpirationMonthInput('02/2027', '02/202'), '02/2027')
+  assert.equal(formatExpirationMonthInput('022027', ''), '02/2027')
+  assert.equal(formatExpirationMonthInput('02', '02/'), '02')
+})
 
 function setup(upTo = files.at(-1)): DatabaseSync {
   const db = new DatabaseSync(':memory:')
@@ -75,13 +84,15 @@ test('0004 conserva el stock y convierte la ubicación a nombre simple', () => {
 })
 
 test('los payloads permiten omitir el stock y rechazan ubicaciones duplicadas', () => {
-  const valid = { drogaId: 1, fechaVencimiento: '2028-01-01', marcaId: 1, presentacionId: 1, dosisId: 1, stocks: [{ ubicacionId: 1, cantidad: 2 }, { ubicacionId: 2, cantidad: 3 }] }
+  const valid = { drogaId: 1, fechaVencimiento: '01/2028', marcaId: 1, presentacionId: 1, dosisId: 1, stocks: [{ ubicacionId: 1, cantidad: 2 }, { ubicacionId: 2, cantidad: 3 }] }
   assert.equal(medicamentoInputSchema.safeParse(valid).success, true)
+  assert.equal(medicamentoInputSchema.safeParse({ ...valid, fechaVencimiento: '2028-01-31' }).success, false)
+  assert.equal(medicamentoInputSchema.safeParse({ ...valid, fechaVencimiento: '13/2028' }).success, false)
   assert.equal(medicamentoInputSchema.safeParse({ ...valid, stocks: [] }).success, true)
   assert.equal(medicamentoInputSchema.safeParse({ ...valid, stocks: [{ ubicacionId: 1, cantidad: 2 }, { ubicacionId: 1, cantidad: 3 }] }).success, false)
   assert.equal(ubicacionInputSchema.safeParse({ nombre: 'PAÑOL FARMACIA' }).success, true)
   assert.equal(ubicacionInputSchema.safeParse({ tipo: 'PANOL', nombre: 'Farmacia' }).success, false)
-  const biomedical = { name: 'Catéter', expirationDate: '2028-01-01', stocks: [{ ubicacionId: 1, cantidad: 4 }] }
+  const biomedical = { name: 'Catéter', expirationDate: '01/2028', stocks: [{ ubicacionId: 1, cantidad: 4 }] }
   assert.equal(biomedicalSupplyInputSchema.safeParse(biomedical).success, true)
   assert.equal(biomedicalSupplyInputSchema.safeParse({ ...biomedical, stocks: [{ ubicacionId: 1, cantidad: 4 }, { ubicacionId: 1, cantidad: 2 }] }).success, false)
 })
@@ -113,6 +124,30 @@ test('0007 conserva los biomédicos del modelo anterior', () => {
     const columns = db.prepare('PRAGMA table_info(biomedical_supplies)').all().map((column) => column.name)
     assert.equal(columns.includes('quantity'), false)
     assert.equal(columns.includes('location'), false)
+  } finally { db.close() }
+})
+
+test('0008 convierte los vencimientos existentes a mes y año', () => {
+  const db = setup('0007_biomedical_location_stock.sql')
+  try {
+    const ids = seedCatalog(db)
+    db.prepare('INSERT INTO medicamentos (droga_id, fecha_vencimiento, marca_id, presentacion_id, dosis_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(ids.drogaId, '2028-06-30', ids.marcaId, ids.presentacionId, ids.dosisId, timestamp, timestamp)
+    db.prepare('INSERT INTO biomedical_supplies (name, expiration_date, created_at, updated_at) VALUES (?, ?, ?, ?)').run('Catéter', '2029-04-15', timestamp, timestamp)
+    db.exec(fs.readFileSync(path.join(migrations, '0008_expiration_month.sql'), 'utf8'))
+    assert.equal(db.prepare('SELECT fecha_vencimiento FROM medicamentos').get()?.fecha_vencimiento, '2028-06')
+    assert.equal(db.prepare('SELECT expiration_date FROM biomedical_supplies').get()?.expiration_date, '2029-04')
+  } finally { db.close() }
+})
+
+test('0009 presenta los vencimientos como MM/AAAA', () => {
+  const db = setup('0008_expiration_month.sql')
+  try {
+    const ids = seedCatalog(db)
+    db.prepare('INSERT INTO medicamentos (droga_id, fecha_vencimiento, marca_id, presentacion_id, dosis_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(ids.drogaId, '2028-06', ids.marcaId, ids.presentacionId, ids.dosisId, timestamp, timestamp)
+    db.prepare('INSERT INTO biomedical_supplies (name, expiration_date, created_at, updated_at) VALUES (?, ?, ?, ?)').run('Catéter', '2029-04', timestamp, timestamp)
+    db.exec(fs.readFileSync(path.join(migrations, '0009_expiration_month_display.sql'), 'utf8'))
+    assert.equal(db.prepare('SELECT fecha_vencimiento FROM medicamentos').get()?.fecha_vencimiento, '06/2028')
+    assert.equal(db.prepare('SELECT expiration_date FROM biomedical_supplies').get()?.expiration_date, '04/2029')
   } finally { db.close() }
 })
 

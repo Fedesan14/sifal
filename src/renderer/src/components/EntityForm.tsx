@@ -12,10 +12,12 @@ import {
 export interface Field<T> {
   key: string;
   label: string;
-  type?: "text" | "number" | "date" | "select" | "display" | "location-stock";
+  type?: "text" | "number" | "date" | "month" | "select" | "display" | "location-stock";
   options?: { value: string | number; label: string }[] | ((current: T) => { value: string | number; label: string }[]);
   numeric?: boolean;
   min?: number;
+  placeholder?: string;
+  formatInput?: (raw: string, previous: string) => string;
   visible?: (value: T) => boolean;
   onChange?: (value: T, raw: string) => T;
   displayValue?: (value: T) => string;
@@ -110,14 +112,15 @@ export function EntityForm<T extends object>({
                   : String(rawValue ?? "");
               const options = typeof field.options === "function" ? field.options(value) : field.options;
               const update = (raw: string) => {
-                if (field.onChange) setValue(field.onChange(value, raw));
+                const formatted = field.formatInput ? field.formatInput(raw, displayValue) : raw;
+                if (field.onChange) setValue(field.onChange(value, formatted));
                 else {
                   const next =
                     field.type === "number" || field.numeric
-                      ? raw === ""
+                      ? formatted === ""
                         ? Number.NaN
-                        : Number(raw)
-                      : raw;
+                        : Number(formatted)
+                      : formatted;
                   setValue({ ...value, [field.key]: next });
                 }
                 setErrors({ ...errors, [field.key]: "" });
@@ -226,6 +229,7 @@ export function EntityForm<T extends object>({
                       autoFocus={index === 0}
                       type={field.type ?? "text"}
                       min={field.min}
+                      placeholder={field.placeholder}
                       value={displayValue}
                       onChange={(event) => update(event.target.value)}
                     />

@@ -4,6 +4,7 @@ import type {
   MedicamentoInput,
 } from "../../../shared/types/entities";
 import { medicamentoInputSchema } from "../../../shared/validation/schemas";
+import { formatExpirationMonthInput } from "../../../shared/formatters";
 import { CrudPage } from "../components/CrudPage";
 import {
   QuickCreateRelated,
@@ -111,8 +112,10 @@ export function MedicamentosPage() {
           },
           {
             key: "fechaVencimiento",
-            label: "Fecha de vencimiento",
-            type: "date",
+            label: "Mes de vencimiento (MM/AAAA)",
+            type: "text",
+            placeholder: "01/2027",
+            formatInput: formatExpirationMonthInput,
           },
           {
             key: "marcaId",
